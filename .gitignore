@@ -1,0 +1,56 @@
+# --- OS & System Files ---
+.DS_Store
+Thumbs.db
+*.swp
+*.log
+*.tmp
+*.bak
+
+# --- Node.js ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# --- IDEs & Editors ---
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.iml
+*.iws
+*.ipr
+.project
+.classpath
+.settings/
+.nb-gradle/
+
+# --- Environment & Secrets (QUAN TRỌNG) ---
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.json
+# Loại trừ các file cấu hình nhạy cảm cụ thể
+firebase-auth-key.json
+service-account.json
+
+# --- Docker ---
+.docker/
+# Thường không nên bỏ docker-compose.yml, nhưng có thể bỏ các file override local
+docker-compose.override.yml
+
+# --- Databases ---
+*.sql
+*.sqlite
+data/
+pgdata/
+
+# --- NiFi & Drivers ---
+drivers/*.jar
+nifi-logs/

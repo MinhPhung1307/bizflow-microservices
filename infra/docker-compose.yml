@@ -1,0 +1,96 @@
+services:
+
+  dwh-init:
+    build:
+      context: ../services/dwh-init
+      dockerfile: Dockerfile
+    container_name: bizflow-dwh-init
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_dwh?sslmode=require&channel_binding=require
+    restart: "no"
+    networks:
+      - bizflow-network
+
+  # --- MESSAGE QUEUE ---
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: bizflow-mq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  # --- IDENTITY SERVICE ---
+  identity-svc:
+    build:
+      context: ../services/identity-svc 
+    container_name: bizflow-identity-svc
+    ports:
+      - "4001:4001"
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
+      - PORT=4001
+      - FIREBASE_SERVICE_ACCOUNT=./firebase-auth-key.json
+    depends_on:
+      - db-identity
+      - rabbitmq
+    networks:
+      - bizflow-network
+
+  # --- API GATEWAY ---
+  kong-db:
+    image: postgres:13
+    container_name: bizflow-db-kong
+    environment:
+      POSTGRES_DB: kong
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+    networks:
+      - bizflow-network
+
+  kong-migrations:
+    image: kong:latest
+    command: kong migrations bootstrap
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-db
+      KONG_PG_PASSWORD: kong
+    depends_on:
+      - kong-db
+    networks:
+      - bizflow-network
+
+  kong:
+    image: kong:latest
+    container_name: bizflow-gateway
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-db
+      KONG_PG_PASSWORD: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    depends_on:
+      - kong-migrations
+    networks:
+      - bizflow-network
+
+  # --- DATA FLOW ---
+  nifi:
+    image: apache/nifi:latest
+    container_name: bizflow-nifi
+    ports:
+      - "8443:8443"
+    environment:
+      - SINGLE_USER_CREDENTIALS_USERNAME=admin
+      - SINGLE_USER_CREDENTIALS_PASSWORD=bizflow_password_123
+    networks:
+      - bizflow-network
+    volumes:
+      - ./drivers:/opt/nifi/custom_drivers
+
+networks:
+  bizflow-network:
+    driver: bridge
+  
