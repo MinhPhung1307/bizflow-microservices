@@ -21,11 +21,16 @@ services:
           address: http://identity-svc:4001/auth/introspect
       
   - name: order-service
-    url: http://order-svc:5003
+    url: http://order-svc:4003
     routes:
       - name: order-route
         paths:
           - /api/orders
+    plugins: # Chỉ đặt bảo mật cho những service cần thiết
+      - name: jwt
+      - name: forward-auth
+        config:
+          address: http://identity-svc:4001/auth/introspect
 
 plugins:
   - name: prometheus # Tự động thu thập chỉ số cho tất cả service
