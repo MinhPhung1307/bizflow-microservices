@@ -9,7 +9,7 @@ services:
         strip_path: true
 
   - name: product-service
-    url: http://product-svc:4000
+    url: http://product-svc:4002
     routes:
       - name: product-route
         paths:
@@ -21,7 +21,7 @@ services:
           address: http://identity-svc:4001/auth/introspect
       
   - name: order-service
-    url: http://order-svc:5000
+    url: http://order-svc:5003
     routes:
       - name: order-route
         paths:
