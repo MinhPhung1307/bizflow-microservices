@@ -1,7 +1,8 @@
 // src/controllers/AuthController.js
-import pool from '../config/db.js';
+import db from '../config/db.js';
 import bcrypt from 'bcryptjs';
 import { generateToken } from '../config/JwtToken.js';
+import jwt from 'jsonwebtoken';
 
 // đăng ký
 export const register = async (req, res) => {
@@ -25,7 +26,7 @@ export const register = async (req, res) => {
         }
 
         // 4. Kiểm tra số điện thoại đã tồn tại trong bảng users chưa
-        const checkUser = await pool.query(
+        const checkUser = await db.query(
             'SELECT id FROM "users" WHERE phone_number = $1',
             [phone_number]
         );
@@ -35,7 +36,7 @@ export const register = async (req, res) => {
         }
 
         // 5. Lấy ID cho vai trò 'OWNER' (Mặc định cho người đăng ký mới)
-        const roleResult = await pool.query(
+        const roleResult = await db.query(
             'SELECT id FROM "role" WHERE role_name = $1',
             ['OWNER']
         );
@@ -51,7 +52,7 @@ export const register = async (req, res) => {
 
         // 7. Chèn người dùng mới vào database với trạng thái 'PENDING'
         // Lưu ý: Cột 'id' sẽ tự sinh UUID, 'status' mặc định là 'PENDING'
-        const newUser = await pool.query(
+        const newUser = await db.query(
             `INSERT INTO "users" (full_name, shop_name, phone_number, password, role_id, status)
              VALUES ($1, $2, $3, $4, $5, 'PENDING')
              RETURNING id, full_name, status`,
@@ -95,7 +96,7 @@ export const login = async (req, res) => {
 
         // 3. Tìm người dùng trong database bằng số điện thoại
         // JOIN với bảng role để lấy quyền hạn ngay khi đăng nhập
-        const userRes = await pool.query(
+        const userRes = await db.query(
             `SELECT u.*, r.role_name 
              FROM "users" u 
              JOIN "role" r ON u.role_id = r.id 
@@ -149,6 +150,34 @@ export const login = async (req, res) => {
     }
 };
 
+// đăng xuất
+export const logout = (req, res) => {
+    try {
+        const isProduction = process.env.NODE_ENV === 'production';
+
+        const cookieOptions = {
+            httpOnly: true,
+            secure: isProduction, // Chỉ bật Secure khi chạy HTTPS (production)
+            sameSite: isProduction ? 'none' : 'lax',
+            path: '/' // Đảm bảo xóa cookie ở cấp độ root
+        };
+
+        // Xóa cookie 'jwt' và các cookie liên quan
+        res.clearCookie('jwt', cookieOptions);
+        
+        // Biện pháp bổ sung: ghi đè cookie bằng giá trị rỗng và hết hạn ngay lập tức
+        res.cookie('jwt', '', { ...cookieOptions, expires: new Date(0) });
+
+        res.status(200).json({ 
+            success: true, 
+            message: 'Đăng xuất thành công' 
+        });
+    } catch (error) {
+        console.error('Error in logout controller:', error);
+        res.status(500).json({ message: 'Lỗi hệ thống khi đăng xuất' });
+    }
+};
+
 // xác thực token
 export const verifyInternalToken = async (req, res) => {
     // 1. Lấy Token từ Header Authorization (Bearer <token>)
@@ -166,7 +195,7 @@ export const verifyInternalToken = async (req, res) => {
 
         // 3. Truy vấn thông tin người dùng từ Database bằng UUID
         // JOIN với bảng role để lấy tên vai trò (ADMIN, OWNER...)
-        const userRes = await pool.query(
+        const userRes = await db.query(
             `SELECT u.id, u.full_name, u.status, r.role_name, u.owner_id 
              FROM "users" u 
              JOIN "role" r ON u.role_id = r.id 
