@@ -1,0 +1,16 @@
+{
+  "name": "dwh-init",
+  "version": "1.0.0",
+  "description": "",
+  "main": "init-dwh.js",
+  "type": "module",
+  "scripts": {
+    "start": "node init-dwh.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "pg": "^8.11.0"
+  }
+}
