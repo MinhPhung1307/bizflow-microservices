@@ -1,16 +1,39 @@
 _format_version: "3.0"
 services:
+  - name: identity-svc
+    url: http://identity-svc:4001
+    routes:
+      - name: auth-routes
+        paths:
+          - /api
+        strip_path: true
+
   - name: product-service
     url: http://product-svc:4000
     routes:
       - name: product-route
         paths:
           - /api/products
+    plugins: # Chỉ đặt bảo mật cho những service cần thiết
+      - name: jwt
+      - name: forward-auth
+        config:
+          address: http://identity-svc:4001/auth/introspect
+      
   - name: order-service
     url: http://order-svc:5000
     routes:
       - name: order-route
         paths:
           - /api/orders
+
 plugins:
-  - name: jwt # Bảo mật các route bằng Token Firebase
+  - name: prometheus # Tự động thu thập chỉ số cho tất cả service
+  - name: rate-limiting
+    config:
+      minute: 60
+      policy: local # Giới hạn chung 60 request/phút cho toàn bộ API
+  - name: cors # Cho phép mọi Frontend truy cập vào các service
+    config:
+      origins: ["*"]
+      methods: ["GET", "POST", "PUT", "DELETE"]
