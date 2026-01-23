@@ -3,8 +3,8 @@ import api from '@/lib/axios';
 import { Product } from '@/types';
 
 export const productService = {
-  getAll: async (): Promise<Product[]> => {
-    const response = await api.get('/products'); 
+  getAll: async (params?: any): Promise<Product[]> => {
+    const response = await api.get('/products', { params }); 
     
     // 1. Lấy mảng data từ cấu trúc { success: true, count: 5, data: [...] }
     const rawData = response.data?.data || [];
@@ -22,19 +22,25 @@ export const productService = {
       }
 
       return {
-        id: item.id,
-        name: item.name,
+        id: item.id || '',
+        owner_id: item.owner_id || '',
+        name: item.name || '',
         code: item.code || '---', // JSON của bạn chưa có field 'code', tạm để '---'
         
         // Convert giá từ String "45000.00" -> Number 45000
         price: Number(item.price || 0),
+        quantity: Number(item.quantity || 0), 
+        importPrice: Number(item.import_price || item.importPrice || 0),
         
         // Convert stock
         stock: Number(item.stock || 0),
         
         unit: item.unit || 'Cái',
         category: item.category || '',
-        image: imageUrl // Gán ảnh đã xử lý vào đây
+        image: imageUrl, // Gán ảnh đã xử lý vào đây
+
+        is_active: item.is_active !== undefined ? Boolean(item.is_active) : true,
+        created_at: item.created_at || new Date().toISOString(),
       };
     });
   },
