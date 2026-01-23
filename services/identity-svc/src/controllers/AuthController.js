@@ -82,6 +82,74 @@ export const register = async (req, res) => {
     }
 };
 
+// đăng nhập
+export const login = async (req, res) => {
+    // 1. Lấy thông tin đăng nhập từ body
+    const { phone_number, password } = req.body;
+
+    try {
+        // 2. Kiểm tra các trường bắt buộc
+        if (!phone_number || !password) {
+            return res.status(400).json({ message: 'Vui lòng nhập số điện thoại và mật khẩu' });
+        }
+
+        // 3. Tìm người dùng trong database bằng số điện thoại
+        // JOIN với bảng role để lấy quyền hạn ngay khi đăng nhập
+        const userRes = await pool.query(
+            `SELECT u.*, r.role_name 
+             FROM "users" u 
+             JOIN "role" r ON u.role_id = r.id 
+             WHERE u.phone_number = $1`, 
+            [phone_number]
+        );
+
+        const user = userRes.rows[0];
+
+        // 4. Kiểm tra người dùng có tồn tại không
+        if (!user) {
+            return res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác' });
+        }
+
+        // 5. Kiểm tra mật khẩu bằng bcryptjs
+        const isPasswordCorrect = await bcrypt.compare(password, user.password);
+        if (!isPasswordCorrect) {
+            return res.status(401).json({ message: 'Số điện thoại hoặc mật khẩu không chính xác' });
+        }
+
+        // 6. Kiểm tra trạng thái tài khoản
+        // Chỉ cho phép đăng nhập nếu trạng thái là 'ACTIVE'
+        if (user.status !== 'ACTIVE') {
+            return res.status(403).json({ 
+                message: 'Tài khoản của bạn đang chờ phê duyệt hoặc đã bị khóa',
+                status: user.status 
+            });
+        }
+
+        // 7. Tạo mã Token JWT
+        const token = generateToken(user.id, res);
+
+        // 8. Trả về thông tin người dùng (không kèm password) và token
+        res.status(200).json({
+            success: true,
+            message: 'Đăng nhập thành công',
+            user: {
+                id: user.id,
+                full_name: user.full_name,
+                phone_number: user.phone_number,
+                role: user.role_name,
+                shop_name: user.shop_name,
+                status: user.status
+            },
+            token: token
+        });
+
+    } catch (error) {
+        console.error('Error in login controller:', error);
+        res.status(500).json({ message: 'Lỗi hệ thống khi đăng nhập', error: error.message });
+    }
+};
+
+// xác thực token
 export const verifyInternalToken = async (req, res) => {
     // 1. Lấy Token từ Header Authorization (Bearer <token>)
     const authHeader = req.headers.authorization;
@@ -118,7 +186,7 @@ export const verifyInternalToken = async (req, res) => {
         }
 
         // 5. Trả về kết quả cho Kong Gateway
-        // Kong sẽ dùng các thông tin này để đính kèm vào Header cho các service sau (như product-svc)
+        // Kong sẽ dùng các thông tin này để đính kèm vào Header cho các service sau
         res.json({
             active: true,
             userId: user.id,
