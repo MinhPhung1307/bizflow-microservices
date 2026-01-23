@@ -52,7 +52,7 @@ const AudioVisualizer = ({ isRecording }) => {
   );
 };
 
-const AIOrderCreator = ({ onSuccess }) => {
+const AIOrderCreator = ({ onSuccess = () => {} }) => {
   // --- STATE ---
   const [transcript, setTranscript] = useState("");
   const [isRecording, setIsRecording] = useState(false);

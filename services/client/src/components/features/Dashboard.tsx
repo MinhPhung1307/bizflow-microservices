@@ -73,7 +73,7 @@ export const Dashboard = () => (
                     <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={10} />
                     <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000000}Tr`} />
                     <Tooltip 
-                        formatter={(val: number) => formatCurrency(val)} 
+                        formatter={(val: any) => formatCurrency(val)} 
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                     />
                     <Legend />

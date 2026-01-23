@@ -10,6 +10,15 @@ export interface User {
   owner_id?: string; // Nếu là employee thì cần biết thuộc owner nào
 }
 
+export interface Owner {
+  id: string;
+  full_name: string;
+  shop_name: string;
+  phone_number: string;
+  status: 'PENDING' | 'ACTIVE' | 'INACTIVE';
+  created_at?: string;
+}
+
 export interface Product {
   readonly id: string;
   owner_id: string;

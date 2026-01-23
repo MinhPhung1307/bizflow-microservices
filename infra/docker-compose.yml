@@ -31,9 +31,44 @@ services:
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - PORT=4001
-      - FIREBASE_SERVICE_ACCOUNT=./firebase-auth-key.json
     depends_on:
       - rabbitmq
+    networks:
+      - bizflow-network
+  
+  product-svc:
+    build: 
+      context: ../services/product-svc
+    container_name: bizflow-product-svc
+    ports:
+      - "4002:4002"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - rabbitmq
+    networks:
+      - bizflow-network
+
+  order-svc:
+    build: 
+      context: ../services/order-svc
+    container_name: bizflow-order-svc
+    ports:
+      - "4003:4003"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+      - AI_API_KEY=${AI_API_KEY}
+    networks:
+      - bizflow-network
+
+  report-svc:
+    build: 
+      context: ../services/report-svc
+    container_name: bizflow-report-svc
+    ports:
+      - "4004:4004"
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
     networks:
       - bizflow-network
 
@@ -89,6 +124,22 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin # Mật khẩu đăng nhập Grafana
     networks:
       - bizflow-network
+
+  # --- CLIENT ---
+  client:
+    build:
+      context: ../services/client
+      dockerfile: Dockerfile
+    container_name: bizflow-client
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api # Gọi qua Kong Gateway
+    depends_on:
+      - kong
+    networks:
+      - bizflow-network
+    restart: always
 
 networks:
   bizflow-network:

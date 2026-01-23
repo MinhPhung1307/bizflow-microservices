@@ -16,8 +16,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Import components
-import AccountOwnerTable, { Owner } from '@/components/admin/AccountOwnerTable';
+import AccountOwnerTable from '@/components/admin/AccountOwnerTable';
 import OwnerForm from '@/components/admin/OwnerForm';
+import { Owner } from '@/types';
 
 export default function AccountOwnerPage() {
   const queryClient = useQueryClient();
