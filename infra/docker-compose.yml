@@ -36,6 +36,7 @@ services:
     networks:
       - bizflow-network
   
+  # --- PRODUCT SERVICES ---
   product-svc:
     build: 
       context: ../services/product-svc
@@ -49,6 +50,7 @@ services:
     networks:
       - bizflow-network
 
+  # --- ORDER SERVICE ---
   order-svc:
     build: 
       context: ../services/order-svc
@@ -61,6 +63,7 @@ services:
     networks:
       - bizflow-network
 
+  # --- REPORT SERVICE ---
   report-svc:
     build: 
       context: ../services/report-svc
