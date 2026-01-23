@@ -1,53 +1,133 @@
 // src/controllers/AuthController.js
-import admin from '../config/firebase.js';
 import pool from '../config/db.js';
+import bcrypt from 'bcryptjs';
+import { generateToken } from '../config/JwtToken.js';
 
-export const syncUserWithFirebase = async (req, res) => {
-    const { idToken, full_name, phone_number, shop_name, role_name } = req.body;
+// đăng ký
+export const register = async (req, res) => {
+    // 1. Lấy thông tin từ body
+    const { full_name, shop_name, phone_number, password } = req.body;
 
     try {
-        // 1. Xác thực Token từ Firebase gửi lên
-        const decodedToken = await admin.auth().verifyIdToken(idToken);
-        const { uid } = decodedToken;
+        // 2. Kiểm tra các trường bắt buộc
+        if (!full_name || !phone_number || !password) {
+            return res.status(400).json({ message: 'Vui lòng nhập đầy đủ họ tên, số điện thoại và mật khẩu' });
+        }
 
-        // 2. Lấy role_id tương ứng
-        const roleRes = await pool.query('SELECT id FROM roles WHERE role_name = $1', [role_name]);
-        const roleId = roleRes.rows[0].id;
+        // 3. Validate định dạng dữ liệu (Mật khẩu và Số điện thoại)
+        if (password.length < 6) {
+            return res.status(400).json({ message: 'Mật khẩu phải có ít nhất 6 ký tự' });
+        }
 
-        // 3. Lưu vào database nội bộ để quản lý nghiệp vụ BizFlow
-        const newUser = await pool.query(
-            `INSERT INTO users (firebase_uid, full_name, phone_number, shop_name, role_id, status)
-             VALUES ($1, $2, $3, $4, $5, 'PENDING') 
-             ON CONFLICT (firebase_uid) DO NOTHING RETURNING *`,
-            [uid, full_name, phone_number, shop_name, roleId]
+        const phoneRegex = /^\d{10}$/;
+        if (!phoneRegex.test(phone_number)) {
+            return res.status(400).json({ message: 'Số điện thoại không hợp lệ (phải có 10 chữ số)' });
+        }
+
+        // 4. Kiểm tra số điện thoại đã tồn tại trong bảng users chưa
+        const checkUser = await pool.query(
+            'SELECT id FROM "users" WHERE phone_number = $1',
+            [phone_number]
         );
 
-        res.status(201).json({ success: true, user: newUser.rows[0] });
+        if (checkUser.rows.length > 0) {
+            return res.status(400).json({ message: 'Số điện thoại này đã được đăng ký' });
+        }
+
+        // 5. Lấy ID cho vai trò 'OWNER' (Mặc định cho người đăng ký mới)
+        const roleResult = await pool.query(
+            'SELECT id FROM "role" WHERE role_name = $1',
+            ['OWNER']
+        );
+        
+        if (roleResult.rows.length === 0) {
+            return res.status(500).json({ message: 'Lỗi cấu hình hệ thống: Vai trò OWNER không tồn tại' });
+        }
+        const roleId = roleResult.rows[0].id;
+        
+        // 6. Mã hóa mật khẩu
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+
+        // 7. Chèn người dùng mới vào database với trạng thái 'PENDING'
+        // Lưu ý: Cột 'id' sẽ tự sinh UUID, 'status' mặc định là 'PENDING'
+        const newUser = await pool.query(
+            `INSERT INTO "users" (full_name, shop_name, phone_number, password, role_id, status)
+             VALUES ($1, $2, $3, $4, $5, 'PENDING')
+             RETURNING id, full_name, status`,
+            [full_name, shop_name, phone_number, hashedPassword, roleId]
+        );
+
+        const user = newUser.rows[0];
+
+        // 8. Tạo Token JWT
+        const token = generateToken(user.id, res);
+
+        // 9. Trả về kết quả thành công
+        res.status(201).json({
+            message: 'Đăng ký tài khoản thành công. Vui lòng chờ quản trị viên phê duyệt.',
+            user: {
+                id: user.id,
+                full_name: user.full_name,
+                shop_name: user.shop_name,
+                phone_number: user.phone_number,
+                status: user.status
+            },
+            token: token
+        });
+
     } catch (error) {
-        res.status(401).json({ message: "Token không hợp lệ hoặc lỗi DB", error: error.message });
+        console.error('Error in register controller:', error);
+        res.status(500).json({ message: 'Internal Server error' });
     }
 };
 
-// Hàm dành cho Kong API Gateway gọi để kiểm tra quyền hạn (Introspection)
 export const verifyInternalToken = async (req, res) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    // 1. Lấy Token từ Header Authorization (Bearer <token>)
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ active: false, message: "Missing token" });
+    }
+
     try {
-        const decoded = await admin.auth().verifyIdToken(token);
+        // 2. Xác thực JWT nội bộ
+        // Lưu ý: Biến môi trường JWT_SECRET phải khớp với lúc bạn tạo Token ở hàm register
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // 3. Truy vấn thông tin người dùng từ Database bằng UUID
+        // JOIN với bảng role để lấy tên vai trò (ADMIN, OWNER...)
         const userRes = await pool.query(
-            'SELECT u.*, r.role_name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.firebase_uid = $1',
-            [decoded.uid]
+            `SELECT u.id, u.full_name, u.status, r.role_name, u.owner_id 
+             FROM "users" u 
+             JOIN "role" r ON u.role_id = r.id 
+             WHERE u.id = $1`,
+            [decoded.userId] // decoded.userId là trường bạn đã lưu khi generateToken
         );
-        
-        if (userRes.rows.length === 0) return res.status(404).json({ active: false });
-        
-        // Trả về thông tin để Gateway đính kèm vào Header gửi cho các Service sau
+
+        const user = userRes.rows[0];
+
+        // 4. Kiểm tra người dùng có tồn tại và đang hoạt động không
+        if (!user) {
+            return res.status(404).json({ active: false, message: "User not found" });
+        }
+
+        if (user.status !== 'ACTIVE') {
+            return res.status(403).json({ active: false, message: "Account is not active" });
+        }
+
+        // 5. Trả về kết quả cho Kong Gateway
+        // Kong sẽ dùng các thông tin này để đính kèm vào Header cho các service sau (như product-svc)
         res.json({
             active: true,
-            uid: decoded.uid,
-            role: userRes.rows[0].role_name,
-            owner_id: userRes.rows[0].owner_id || decoded.uid
+            userId: user.id,
+            role: user.role_name,
+            ownerId: user.owner_id || user.id
         });
-    } catch (e) {
-        res.status(401).json({ active: false });
+
+    } catch (error) {
+        console.error('Introspection Error:', error.message);
+        res.status(401).json({ active: false, message: "Invalid or expired token" });
     }
 };
