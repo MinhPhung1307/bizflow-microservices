@@ -1,0 +1,7 @@
+# services/client/.dockerignore
+node_modules
+.next
+out
+build
+.git
+*.log

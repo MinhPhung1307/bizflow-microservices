@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Owner } from './AccountOwnerTable'; // Import interface Owner
+import { Owner } from '../../types/index'; // Import interface Owner
 
 interface Props {
   initialData?: Owner | null; // Nếu có dữ liệu thì là chế độ Sửa

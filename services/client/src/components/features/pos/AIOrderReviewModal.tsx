@@ -80,7 +80,7 @@ export default function AIOrderReviewModal({ isOpen, onClose, aiResult, onConfir
             try {
                 // Gọi API search product của bạn
                 const res = await productService.getAll({ search: query });
-                setSearchResults(res.data || []);
+                setSearchResults(res);
             } catch (error) {
                 console.error("Lỗi tìm sản phẩm:", error);
             }
