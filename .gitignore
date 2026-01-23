@@ -13,7 +13,6 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 .npm
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -35,7 +34,6 @@ pnpm-lock.yaml
 .env.*.local
 *.pem
 *.key
-*.json
 # Loại trừ các file cấu hình nhạy cảm cụ thể
 firebase-auth-key.json
 service-account.json
