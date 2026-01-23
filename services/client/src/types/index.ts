@@ -33,7 +33,7 @@ export interface Product {
   selling_price?: number; // Giá bán lẻ
   stock: number;       // stock trong DB
   unit?: string;       // Lưu ý: Trong file Product.js bạn gửi KHÔNG CÓ cột 'unit'. Bạn nên thêm cột này vào DB nếu cần, hoặc tạm dùng 'Cái'.
-  images: string[];    // JSONB trong DB -> Mảng string ở Frontend
+  images?: string[];    // JSONB trong DB -> Mảng string ở Frontend
   conversionFactor?: number; // Hệ số quy đổi
   newUomName?: string; // Tên đơn vị tính mới khi tạo
   is_active: boolean;

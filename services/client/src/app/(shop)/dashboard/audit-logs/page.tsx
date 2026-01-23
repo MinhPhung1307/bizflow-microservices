@@ -27,6 +27,7 @@ export default function AuditLogsPage() {
     const { data: logs = [], isLoading, refetch, isFetching } = useQuery({
         queryKey: ['audit-logs', searchTerm],
         queryFn: () => ownerService.getAuditLogs(searchTerm),
+        enabled: typeof window !== 'undefined',
     });
 
     // Hàm xác định màu sắc cho Badge dựa trên hành động (khớp với model AuditLog)

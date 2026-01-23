@@ -1,11 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+declare global {
+  interface Window {
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any; 
+  }
+}
+
 const useSpeechRecognition = () => {
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState(''); // Văn bản đã chốt
   const [interimTranscript, setInterimTranscript] = useState(''); // Văn bản đang nói dở
-  const [error, setError] = useState(null);
-  const recognitionRef = useRef(null);
+  const [error, setError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     // Kiểm tra trình duyệt hỗ trợ
@@ -23,7 +30,7 @@ const useSpeechRecognition = () => {
 
     recognition.onstart = () => setIsListening(true);
     
-    recognition.onresult = (event) => {
+    recognition.onresult = (event: any) => {
       let finalTranscript = '';
       let interim = '';
 
@@ -42,7 +49,7 @@ const useSpeechRecognition = () => {
       setInterimTranscript(interim);
     };
 
-    recognition.onerror = (event) => {
+    recognition.onerror = (event: any) => {
       console.error("Speech recognition error", event.error);
       if (event.error === 'not-allowed') {
         setError("Vui lòng cấp quyền micro để sử dụng tính năng này.");

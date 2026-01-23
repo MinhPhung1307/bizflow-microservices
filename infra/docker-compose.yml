@@ -44,7 +44,8 @@ services:
     ports:
       - "4002:4002"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_product?sslmode=require&channel_binding=require
+
     depends_on:
       - rabbitmq
     networks:
@@ -58,7 +59,7 @@ services:
     ports:
       - "4003:4003"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_order?sslmode=require&channel_binding=require
       - AI_API_KEY=${AI_API_KEY}
     networks:
       - bizflow-network
@@ -71,7 +72,7 @@ services:
     ports:
       - "4004:4004"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_report?sslmode=require&channel_binding=require
     networks:
       - bizflow-network
 
