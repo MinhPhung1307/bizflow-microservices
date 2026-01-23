@@ -16,9 +16,6 @@ services:
           - /api/products
     plugins: # Chỉ đặt bảo mật cho những service cần thiết
       - name: jwt
-      - name: forward-auth
-        config:
-          address: http://identity-svc:4001/auth/introspect
       
   - name: order-service
     url: http://order-svc:5000
