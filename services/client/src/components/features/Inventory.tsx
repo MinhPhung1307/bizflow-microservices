@@ -67,6 +67,8 @@ const UOM_GROUP_MAPPING : Record<string, { base: string; factor: number }> = {
     'Lít': { base: 'Lít', factor: 1 }
 };
 
+const EMPTY_ARRAY: any[] = [];
+
 // SỬ DỤNG NAMED EXPORT ĐỂ KHỚP VỚI page.tsx
 export const InventoryManager = () => {
     const queryClient = useQueryClient();
@@ -96,7 +98,6 @@ export const InventoryManager = () => {
     });
 
     const [isManualCategory, setIsManualCategory] = useState(false);
-    const [activeUomMapping, setActiveUomMapping] = useState(UOM_GROUP_MAPPING);
 
     // Tự động quản lý trạng thái loading với useQuery
     const { data: productsData, isLoading } = useQuery({
@@ -104,21 +105,23 @@ export const InventoryManager = () => {
         queryFn: productService.getAll,
     });
 
-    const products = React.useMemo(() => productsData || [], [productsData]);
+    const products = useMemo(() => productsData || EMPTY_ARRAY, [productsData]);
 
-    const { data: globalUoms = [] } = useQuery({
+    const { data: globalUomsData = [] } = useQuery({
         queryKey: ['all-uoms'],
         queryFn: ownerService.getAllUoms,
     });
+    const globalUoms = globalUomsData || EMPTY_ARRAY;
 
     // Lấy toàn bộ đơn vị của cửa hàng ngay từ đầu
-    const { data: storeUoms = [] } = useQuery({
+    const { data: storeUomsData = [] } = useQuery({
         queryKey: ['store-uoms'],
         queryFn: async () => {
             const response = await ownerService.getStoreUoms();
             return response.data || response;
         },
     });
+    const storeUoms = storeUomsData || EMPTY_ARRAY;
 
     // Lấy đơn vị tính của sản phẩm khi formData.id thay đổi
     const { data: productUoms = [], isLoading: isLoadingUoms } = useQuery({
@@ -128,6 +131,30 @@ export const InventoryManager = () => {
         },
         enabled: !!formData.id && formData.id !== undefined,
     });
+
+    const activeUomMapping = useMemo(() => {
+        const newMapping = { ...UOM_GROUP_MAPPING };
+
+        globalUoms.forEach((uom: any) => {
+            if (uom?.uom_name && uom?.base_unit) {
+                newMapping[uom.uom_name] = {
+                    base: uom.base_unit,
+                    factor: Number(uom.conversion_factor) || 1
+                };
+            }
+        });
+
+        storeUoms.forEach((uom: any) => {
+            if (uom?.uom_name) {
+                newMapping[uom.uom_name] = {
+                    base: uom.base_unit,
+                    factor: Number(uom.conversion_factor) || 1
+                };
+            }
+        });
+
+        return newMapping;
+    }, [globalUoms, storeUoms]);
 
     // Mutation để Thêm/Sửa
     const mutation = useMutation({
@@ -190,36 +217,20 @@ export const InventoryManager = () => {
         // 3. Chỉ tìm kiếm khi danh sách sản phẩm đã tải xong
         if (products.length > 0) {
             const foundProduct = products.find((p: any) => p.code === searchCode);
-
-            if (foundProduct) {
-                if (formData.id !== foundProduct.id) {
-                    setIsNewProduct(false);
-                    setFormData(prev => ({
-                        ...prev,
-                        id: foundProduct.id, 
-                        name: foundProduct.name,
-                        category: foundProduct.category,
-                        unit: foundProduct.unit || 'Cái',
-                        price: Number(foundProduct.price || 0),
-                        stock: Number(foundProduct.stock || 0)
-                    }));
-                    toast.success(`Đã nhận diện: ${foundProduct.name}`);
-                }
-            } else {
-                if (formData.id !== undefined) {
-                    setIsNewProduct(true);
-                    setFormData(prev => ({
-                        ...prev,
-                        id: undefined,
-                        name: '',
-                        category: '',
-                        price: 0,
-                        stock: 0
-                    }));
-                }
+            if (foundProduct && formData.id !== foundProduct.id) {
+                setIsNewProduct(false);
+                setFormData(prev => ({
+                    ...prev,
+                    id: foundProduct.id, 
+                    name: foundProduct.name,
+                    category: foundProduct.category,
+                    unit: foundProduct.unit || 'Cái',
+                    price: Number(foundProduct.price || 0),
+                    stock: Number(foundProduct.stock || 0)
+                }));
             }
         }
-    }, [formData.code, products, formData.id, isNewProduct]);
+    }, [formData.code, products]);
 
 
     useEffect(() => {
@@ -249,9 +260,6 @@ export const InventoryManager = () => {
                 };
             }
         });
-
-        setActiveUomMapping(newMapping);
-        console.log("activeUomMapping", activeUomMapping)
     }, [globalUoms, storeUoms]);
 
     const deleteMutation = useMutation({

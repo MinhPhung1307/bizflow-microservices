@@ -104,7 +104,7 @@ services:
       - "8443:8443"
     environment:
       - SINGLE_USER_CREDENTIALS_USERNAME=admin
-      - SINGLE_USER_CREDENTIALS_PASSWORD=bizflow_password_123
+      - SINGLE_USER_CREDENTIALS_PASSWORD=123456_bizflow
     networks:
       - bizflow-network
     volumes:
