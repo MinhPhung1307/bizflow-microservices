@@ -190,7 +190,7 @@ export const verifyInternalToken = async (req, res) => {
     try {
         // 2. Xác thực JWT nội bộ
         // Lưu ý: Biến môi trường JWT_SECRET phải khớp với lúc bạn tạo Token ở hàm register
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
 
         // 3. Truy vấn thông tin người dùng từ Database bằng UUID
         // JOIN với bảng role để lấy tên vai trò (ADMIN, OWNER...)
