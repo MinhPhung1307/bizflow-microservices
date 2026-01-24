@@ -61,10 +61,7 @@ export const register = async (req, res) => {
 
         const user = newUser.rows[0];
 
-        // 8. Tạo Token JWT
-        const token = generateToken(user.id, res);
-
-        // 9. Trả về kết quả thành công
+        // 8. Trả về kết quả thành công
         res.status(201).json({
             message: 'Đăng ký tài khoản thành công. Vui lòng chờ quản trị viên phê duyệt.',
             user: {
@@ -73,8 +70,7 @@ export const register = async (req, res) => {
                 shop_name: user.shop_name,
                 phone_number: user.phone_number,
                 status: user.status
-            },
-            token: token
+            }
         });
 
     } catch (error) {
@@ -127,7 +123,7 @@ export const login = async (req, res) => {
         }
 
         // 7. Tạo mã Token JWT
-        const token = generateToken(user.id, res);
+        const token = generateToken(user.id, user.role_name, res);
 
         // 8. Trả về thông tin người dùng (không kèm password) và token
         res.status(200).json({
@@ -167,6 +163,9 @@ export const logout = (req, res) => {
         
         // Biện pháp bổ sung: ghi đè cookie bằng giá trị rỗng và hết hạn ngay lập tức
         res.cookie('jwt', '', { ...cookieOptions, expires: new Date(0) });
+
+        res.clearCookie('role', cookieOptions);
+        res.cookie('role', '', { ...cookieOptions, expires: new Date(0) });
 
         res.status(200).json({ 
             success: true, 
