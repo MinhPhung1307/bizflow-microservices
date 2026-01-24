@@ -18,6 +18,8 @@ export const UserModel = `
       owner_id UUID DEFAULT NULL REFERENCES users(id) ON DELETE CASCADE,
       avatar JSONB DEFAULT NULL,
 
+      plan_id INTEGER DEFAULT 1,
+
       status user_status NOT NULL DEFAULT 'PENDING',
 
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

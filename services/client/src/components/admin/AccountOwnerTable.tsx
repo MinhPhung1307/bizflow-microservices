@@ -214,9 +214,9 @@ const openPlanDialog = (owner: any) => {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {isLoading ? (
-                <tr><td colSpan={5} className="p-4 text-center text-slate-500">Đang tải dữ liệu...</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Đang tải dữ liệu...</td></tr>
             ) : filteredOwners.length === 0 ? (
-                <tr><td colSpan={5} className="p-4 text-center text-slate-500">Không tìm thấy kết quả</td></tr>
+                <tr><td colSpan={7} className="p-4 text-center text-slate-500">Không tìm thấy kết quả</td></tr>
             ) : (
                 filteredOwners.map((owner: any) => {
                     if (!owner) return null;

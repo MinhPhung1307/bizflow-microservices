@@ -33,6 +33,8 @@ export const createUsersTable = async () => {
                 owner_id UUID DEFAULT NULL, -- NULL nếu là OWNER/ADMIN, FOREIGN KEY tới users.id 
                 avatar JSONB DEFAULT NULL,
 
+                plan_id INTEGER DEFAULT 1,
+
                 status user_status NOT NULL DEFAULT 'PENDING',
 
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
