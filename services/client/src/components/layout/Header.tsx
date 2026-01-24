@@ -1,11 +1,29 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { authService } from '@/services/auth.service';
 import { LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function Header() {
+  const [fullName, setFullName] = useState<string>('');
+
+  useEffect(() => {
+    if(typeof window !== 'undefined' ) {
+      const userData = localStorage.getItem('user');
+
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          setFullName(user?.full_name || '');
+        } catch (error) {
+          console.error("Lỗi khi parse dữ liệu user:", error);
+        }
+      }
+    }
+  }, []);
+
   const handleLogout = async () => {
   // 1. XÓA NGAY LẬP TỨC (Không cần chờ API)
   if (typeof window !== 'undefined') {
@@ -28,7 +46,7 @@ export default function Header() {
     <header className="h-16 bg-white border-b flex items-center justify-between px-6">
       <h2 className="text-lg font-semibold text-gray-800">Dashboard</h2>
       <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-600">Xin chào, {JSON.parse(localStorage.getItem('user') || '{}')?.full_name}</span>
+        <span className="text-sm text-gray-600"> Xin chào, {fullName || 'User'} </span>
         <Button variant="ghost" size="icon" onClick={handleLogout} title="Đăng xuất" >
           <LogOut size={20} />
         </Button>

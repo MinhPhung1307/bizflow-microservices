@@ -20,7 +20,7 @@ export const authService = {
   
   // Đăng ký Owner
   registerOwner: async (registerData: any) => {
-    const response = await api.post('/user/sign-up', registerData);
+    const response = await api.post('/auth/register', registerData);
     return response.data;
   },
 
@@ -29,7 +29,7 @@ export const authService = {
     // 2. Gửi key là 'phone_number' (không phải email)
     // Lưu ý: Endpoint của bạn là /user/login hay /users/login tùy vào file routes.js
     // Dựa vào log lỗi của bạn thì là /api/user/login
-    const response = await api.post('/user/login', { 
+    const response = await api.post('/auth/login', { 
         phone_number, 
         password 
     });
@@ -40,7 +40,7 @@ export const authService = {
   logout: async () => {
     try {
       // 1. Gọi Backend xóa HttpOnly Cookie
-      await api.post('/user/logout');
+      await api.post('/auth/logout');
     } catch (error) {
       console.error("Lỗi API logout:", error);
     } finally {
