@@ -5,6 +5,8 @@ export const SubscriptionPlanModel = `
     price DECIMAL(19, 2) NOT NULL CHECK (price >= 0),
     duration_days INT NOT NULL, -- Số ngày hiệu lực (vd: 30, 365)
     features JSONB DEFAULT '[]'::JSONB, -- Danh sách tính năng đi kèm
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 `;

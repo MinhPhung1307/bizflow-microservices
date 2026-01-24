@@ -5,6 +5,8 @@ export const UserApprovalModel = `
       admin_id UUID REFERENCES users(id) ON DELETE SET NULL,
       action user_status, -- Trạng thái được chuyển tới (ACTIVE/REJECTED...)
       reason TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   );
 `;

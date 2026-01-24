@@ -31,6 +31,10 @@ class Database {
     query(text, params) {
         return this.pool.query(text, params);
     }
+
+    connect() {
+        return this.pool.connect();
+    }
 }
 
 // Khởi tạo thực thể duy nhất và xuất ra ngoài

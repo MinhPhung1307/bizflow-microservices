@@ -10,7 +10,10 @@ export const createUserApprovalTable = async () => {
                 admin_id UUID,         -- Admin thực hiện thao tác
                 action user_status,    -- Trạng thái được chuyển tới (ACTIVE/REJECTED...)
                 reason TEXT,           -- Lý do (đặc biệt quan trọng khi REJECTED)
+
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
 
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
