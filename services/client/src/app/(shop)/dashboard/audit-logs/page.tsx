@@ -80,6 +80,7 @@ export default function AuditLogsPage() {
                         <History 
                             size={28} 
                             className={cn(isFetching && "animate-spin")}
+                            style={{ animationDirection: 'reverse' }}
                         />
                     </button>
                     <button 

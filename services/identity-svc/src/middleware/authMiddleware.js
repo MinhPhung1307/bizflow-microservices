@@ -59,3 +59,40 @@ export const isAdmin = async (req, res, next) => {
         return res.status(500).json({ message: "Lỗi hệ thống khi kiểm tra quyền hạn." });
     }
 };
+
+export const isOwner = async (req, res, next) => {
+    try {
+        // ID người dùng được trích xuất từ middleware verifyToken trước đó
+        const userId = req.user.id; 
+
+        // Truy vấn database để lấy tên Role của user hiện tại
+        const query = `
+            SELECT r.role_name 
+            FROM users u
+            JOIN role r ON u.role_id = r.id
+            WHERE u.id = $1
+        `;
+        
+        const result = await db.query(query, [userId]);
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: "Không tìm thấy thông tin người dùng." });
+        }
+
+        const roleName = result.rows[0].role_name;
+
+        // Kiểm tra nếu vai trò là OWNER
+        // Nếu không phải OWNER, trả về mã lỗi 403 (Forbidden)
+        if (roleName !== 'OWNER') {
+            return res.status(403).json({ 
+                message: "Truy cập bị từ chối. Chỉ Chủ sở hữu mới có quyền thực hiện hành động này." 
+            });
+        }
+
+        // Nếu đúng là Owner, cho phép tiếp tục luồng xử lý
+        next();
+    } catch (error) {
+        console.error("Owner Check Error:", error);
+        return res.status(500).json({ message: "Lỗi hệ thống khi kiểm tra quyền Chủ sở hữu." });
+    }
+};

@@ -13,7 +13,7 @@ export const createAuditLogTable = async () => {
                 entity_id VARCHAR(50), -- Bảng bị tác động (Ví dụ: sales_order, product)
                 old_value JSONB,
                 new_value JSONB,
-                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
             );

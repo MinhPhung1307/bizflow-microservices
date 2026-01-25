@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import { initTables } from './models/index.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import ownerRoutes from './routes/ownerRoutes.js';
 
 dotenv.config();
 
@@ -21,6 +22,7 @@ initTables();
 // Routes
 app.use('/auth', authRoutes);
 app.use('/admin', adminRoutes);
+app.use('/owner', ownerRoutes);
 
 const PORT = process.env.PORT || 4001;
 app.listen(PORT, () => {
