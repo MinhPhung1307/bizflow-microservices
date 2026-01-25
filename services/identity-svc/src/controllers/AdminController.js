@@ -376,3 +376,70 @@ export const deletePlan = async (req, res) => {
         res.status(500).json({ message: "Lỗi server khi xóa gói" });
     }
 };
+
+// CONTROLLER Quản lý config
+// Lấy cấu hình hệ thống
+export const getSystemConfig = async (req, res) => {
+    try {
+        // Luôn lấy dòng có id = 1
+        const result = await db.query('SELECT * FROM system_config WHERE id = 1');
+        
+        if (result.rows.length > 0) {
+            res.status(200).json(result.rows[0]);
+        } else {
+            // Fallback nếu chưa có (dù đã init ở model)
+            res.status(200).json({ 
+                maintenance_mode: false, 
+                support_email: '', 
+                tax_vat_default: 8 
+            });
+        }
+    } catch (error) {
+        console.error("Get Config Error:", error);
+        res.status(500).json({ message: "Lỗi lấy cấu hình" });
+    }
+};
+
+// Cập nhật cấu hình hệ thống
+export const updateSystemConfig = async (req, res) => {
+    const { 
+        maintenance_mode, 
+        support_email, 
+        ai_model_version, 
+        tax_vat_default,
+        max_upload_size_mb 
+    } = req.body;
+
+    try {
+        const query = `
+            UPDATE system_config
+            SET maintenance_mode = $1,
+                support_email = $2,
+                ai_model_version = $3,
+                tax_vat_default = $4,
+                max_upload_size_mb = $5,
+                updated_at = NOW()
+            WHERE id = 1
+            RETURNING *
+        `;
+        
+        const values = [
+            maintenance_mode, 
+            support_email, 
+            ai_model_version, 
+            tax_vat_default,
+            max_upload_size_mb
+        ];
+
+        const result = await db.query(query, values);
+        
+        res.status(200).json({ 
+            message: "Đã lưu cấu hình hệ thống", 
+            data: result.rows[0] 
+        });
+
+    } catch (error) {
+        console.error("Update Config Error:", error);
+        res.status(500).json({ message: "Lỗi khi lưu cấu hình" });
+    }
+};
