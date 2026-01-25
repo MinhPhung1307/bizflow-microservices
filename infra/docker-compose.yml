@@ -45,7 +45,7 @@ services:
       - "4002:4002"
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_product?sslmode=require&channel_binding=require
-
+      - PORT=4002
     depends_on:
       - rabbitmq
     networks:

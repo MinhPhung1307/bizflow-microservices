@@ -11,6 +11,9 @@ export const createUomTable = async () => {
                 uom_name VARCHAR(50) NOT NULL, -- Ví dụ: 'Tấn', 'Bao'
                 base_unit VARCHAR(50),
                 owner_id UUID, -- Đơn vị này thuộc về hộ kinh doanh nào
+                
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
                 FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
             );

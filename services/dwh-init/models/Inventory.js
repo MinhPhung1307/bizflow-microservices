@@ -10,7 +10,9 @@ export const createInventoryTable = async () => {
                 product_id UUID UNIQUE NOT NULL,
                 stock INT NOT NULL CHECK (stock >= 0),
                 average_cost DECIMAL(15, 2) DEFAULT 0,
-                last_updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
             );
