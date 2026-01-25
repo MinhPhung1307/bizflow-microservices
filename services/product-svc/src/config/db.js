@@ -1,23 +1,43 @@
-import pg from 'pg';
+import pkg from 'pg';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
-const { Pool } = pg;
+const { Pool } = pkg;
 
-// Tạo kết nối pool đến Database Product
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+class Database {
+    static instance;
 
-pool.on('connect', () => {
-  console.log('✅ Product Service connected to PostgreSQL');
-});
+    constructor() {
+        // Kiểm tra nếu thực thể (instance) đã tồn tại thì trả về thực thể đó
+        if (Database.instance) {
+            return Database.instance;
+        }
 
-pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
-  process.exit(-1);
-});
+        // Khởi tạo Pool
+        this.pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false} : false,
+        });
 
-export default pool;
+        // Lắng nghe lỗi kết nối để tránh sập ứng dụng đột ngột
+        this.pool.on('error', (err) => {
+            console.error('Lỗi PostgreSQL Pool không mong muốn:', err.message);
+        });
+
+        // Gán thực thể vừa tạo vào biến static
+        Database.instance = this;
+    }
+
+    query(text, params) {
+        return this.pool.query(text, params);
+    }
+
+    connect() {
+        return this.pool.connect();
+    }
+}
+
+// Khởi tạo thực thể duy nhất và xuất ra ngoài
+const dbInstance = new Database();
+export default dbInstance;

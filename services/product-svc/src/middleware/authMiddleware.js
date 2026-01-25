@@ -1,25 +1,24 @@
 import jwt from 'jsonwebtoken';
 
-export const protect = (req, res, next) => {
-  let token;
+export const verifyToken = (req, res, next) => {
+    // 1. Lấy token từ header hoặc cookie
+    const token = req.cookies?.jwt || req.headers.authorization?.split(' ')[1];
 
-  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-    try {
-      // Lấy token từ header "Bearer <token>"
-      token = req.headers.authorization.split(' ')[1];
-
-      // Giải mã token (JWT_SECRET cần khớp với identity-svc)
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Lưu thông tin user vào request để dùng ở Controller
-      req.user = decoded; 
-      
-      next();
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      res.status(401).json({ message: 'Not authorized, token failed' });
+    if (!token) {
+        return res.status(401).json({ message: "Bạn cần đăng nhập để thực hiện hành động này" });
     }
-  } else {
-    res.status(401).json({ message: 'Not authorized, no token' });
-  }
+
+    try {
+        // 2. Xác thực và giải mã token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+        
+        // 3. Đưa thông tin user vào request để các controller sử dụng
+        req.user = {
+            id: decoded.userId,
+            role: decoded.role
+        };
+        next();
+    } catch (error) {
+        return res.status(403).json({ message: "Token không hợp lệ hoặc đã hết hạn" });
+    }
 };
