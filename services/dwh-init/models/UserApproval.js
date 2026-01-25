@@ -14,7 +14,6 @@ export const createUserApprovalTable = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                 FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE SET NULL
             );

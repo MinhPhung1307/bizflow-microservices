@@ -16,7 +16,7 @@ export default function Header() {
       if (userData) {
         try {
           const user = JSON.parse(userData);
-          setFullName(user?.full_name || '');
+          setFullName(user?.user?.full_name || '');
         } catch (error) {
           console.error("Lỗi khi parse dữ liệu user:", error);
         }
