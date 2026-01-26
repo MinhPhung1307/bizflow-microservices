@@ -31,6 +31,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - PORT=4001
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
       - JWT_SECRET=bizflow_secret_key_123 
       # Nếu code cũ dùng JWT_SECRET_KEY thì thêm cả dòng này cho chắc:
       - JWT_SECRET_KEY=bizflow_secret_key_123

@@ -7,6 +7,7 @@ export const ProductModel = `
       category VARCHAR(100),
       price DECIMAL(19, 2) NOT NULL CHECK (price >= 0),
       stock INT NOT NULL CHECK (stock >= 0),
+      unit VARCHAR(50) NOT NULL,
       images JSONB DEFAULT '[]'::JSONB, -- Mảng lưu trữ các URL hình ảnh sản phẩm
       is_active BOOLEAN NOT NULL DEFAULT TRUE, -- Sản phẩm có đang hoạt động hay không
 
