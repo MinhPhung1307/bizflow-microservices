@@ -7,11 +7,11 @@ const router = express.Router();
 const upload = multer({ dest: 'uploads/' }); // Cấu hình thư mục tạm
 
 // AI Routes
-router.post('/ai/draft', verifyToken, createDraftOrderFromAI);
-router.post('/ai/transcribe', verifyToken, upload.single('audio'), transcribeAudio);
+// router.post('/ai/draft', verifyToken, createDraftOrderFromAI);
+// router.post('/ai/transcribe', verifyToken, upload.single('audio'), transcribeAudio);
 
 // Order CRUD
-router.post('/', verifyToken, createOrder);
-router.get('/', verifyToken, getAllOrders);
+// router.post('/', verifyToken, createOrder);
+// router.get('/', verifyToken, getAllOrders);
 
 export default router;
