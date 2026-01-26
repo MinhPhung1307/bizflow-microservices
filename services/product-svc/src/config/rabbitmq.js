@@ -21,4 +21,23 @@ export const connectRabbitMQ = async () => {
   }
 };
 
+const consumeOrders = async () => {
+    channel.consume('ORDER_CREATED', async (msg) => {
+        const { items } = JSON.parse(msg.content.toString());
+        
+        for (const item of items) {
+            // Logic trừ kho từ file ProductController cũ của bạn
+            await db.query(
+                `UPDATE inventory SET stock = stock - $1 WHERE product_id = $2`,
+                [item.quantity, item.product_id]
+            );
+            await db.query(
+                `UPDATE product SET stock = stock - $1 WHERE id = $2`,
+                [item.quantity, item.product_id]
+            );
+        }
+        channel.ack(msg);
+    });
+};
+
 export const getChannel = () => channel;
