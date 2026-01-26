@@ -6,6 +6,7 @@ import { initTables } from './models/index.js';
 import authRoutes from './routes/authRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import ownerRoutes from './routes/ownerRoutes.js';
+import { initLogConsumer } from './config/rabbitmq.js';
 
 dotenv.config();
 
@@ -25,6 +26,7 @@ app.use('/admin', adminRoutes);
 app.use('/owner', ownerRoutes);
 
 const PORT = process.env.PORT || 4001;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Identity Service is running on port ${PORT}`);
+  await initLogConsumer();
 });

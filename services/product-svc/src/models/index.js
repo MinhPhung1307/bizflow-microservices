@@ -3,6 +3,7 @@ import { ProductModel } from './Product.js';
 import { InventoryModel } from './Inventory.js';
 import { UomModel } from './Uom.js';
 import { ProductUomModel } from './ProductUom.js';
+import { StockImportModel } from './StockImport.js';
 
 export const initTables = async () => {
   try {
@@ -13,6 +14,7 @@ export const initTables = async () => {
     await pool.query(InventoryModel);
     await pool.query(UomModel);
     await pool.query(ProductUomModel);
+    await pool.query(StockImportModel);
 
     console.log("All Product DB Tables Initialized Successfully.");
   } catch (err) {

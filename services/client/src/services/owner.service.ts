@@ -45,7 +45,7 @@ export const ownerService = {
 
     // Lấy tất cả đơn vị tính (UoM)
     getAllUoms: async () => {
-        const response = await api.get('/owner/uoms/all');
+        const response = await api.get('products/uoms/all');
         return response.data;
     },
 
@@ -56,11 +56,11 @@ export const ownerService = {
     },
 
     getStoreUoms: async () => {
-        const response = await api.get('/owner/uoms/store');
+        const response = await api.get('products/uoms/store');
         return response.data;
     },
 
     importStock: async (data: Object) => {
-        return api.post('/owner/import', data);
+        return api.post('products/import', data);
     },
 };
