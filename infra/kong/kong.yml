@@ -14,8 +14,6 @@ services:
       - name: product-route
         paths:
           - /api/products
-    plugins: # Chỉ đặt bảo mật cho những service cần thiết
-      - name: jwt
       
   - name: order-service
     url: http://order-svc:4003
@@ -23,8 +21,6 @@ services:
       - name: order-route
         paths:
           - /api/orders
-    plugins: # Chỉ đặt bảo mật cho những service cần thiết
-      - name: jwt
 
   - name: report-service
     url: http://report-svc:4004

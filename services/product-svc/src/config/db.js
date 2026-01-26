@@ -1,4 +1,7 @@
 import pkg from 'pg';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const { Pool } = pkg;
 
@@ -14,9 +17,7 @@ class Database {
         // Khởi tạo Pool
         this.pool = new Pool({
             connectionString: process.env.DATABASE_URL,
-            ssl: {
-                rejectUnauthorized: false,
-            },
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false} : false,
         });
 
         // Lắng nghe lỗi kết nối để tránh sập ứng dụng đột ngột
@@ -30,6 +31,10 @@ class Database {
 
     query(text, params) {
         return this.pool.query(text, params);
+    }
+
+    connect() {
+        return this.pool.connect();
     }
 }
 

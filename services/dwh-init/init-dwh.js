@@ -14,6 +14,7 @@ import { createSalesOrderTable } from './models/SalesOrder.js';
 import { createOrderItemTable } from './models/OrderItem.js';
 import { createProductUomTable } from './models/ProductUom.js';
 import { createStockImportTable } from './models/StockImport.js';
+import { createTempSyncIdsTable } from './models/TempSynsId.js';
 
 const runMigration = async () => {
     console.log("--- Bắt đầu khởi tạo cấu trúc DWH trên Neon ---");
@@ -41,6 +42,8 @@ const runMigration = async () => {
         await createOrderItemTable();
         await createProductUomTable();
         await createStockImportTable();
+
+        await createTempSyncIdsTable();
 
         console.log("--- Khởi tạo DWH thành công ---");
     } catch (error) {

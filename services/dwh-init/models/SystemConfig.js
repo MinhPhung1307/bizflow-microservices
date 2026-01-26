@@ -10,6 +10,8 @@ export const createSystemConfigTable = async () => {
                 ai_model_version VARCHAR(50) DEFAULT 'gpt-4o-mini',
                 tax_vat_default DECIMAL(5, 2) DEFAULT 8.00,
                 max_upload_size_mb INT DEFAULT 10,
+                
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
 
