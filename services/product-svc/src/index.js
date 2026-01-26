@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import { initTables } from './models/index.js';
 import productRoutes from './routes/productRoutes.js';
+import { connectRabbitMQ } from './config/rabbitmq.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.get('/health', (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(` Product Service running on port ${PORT}`);
+  await connectRabbitMQ();
 });

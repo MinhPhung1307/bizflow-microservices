@@ -69,20 +69,17 @@ services:
       - bizflow-network
 
   # --- CUSTOMER SERVICE ---
-    # customer-svc:
-    #   build: ../services/customer-svc
-    #   container_name: customer-svc
-    #   restart: always
-    #   environment:
-    #     - PORT=4005
-    #     - DATABASE_URL=postgres://postgres:password@postgres:5432/bizflow_customer_db
-    #     - RABBITMQ_URL=amqp://rabbitmq:5672
-    #     - JWT_SECRET=${JWT_SECRET}
-    #   depends_on:
-    #     - postgres
-    #     - rabbitmq
-    #   networks:
-    #     - bizflow-network
+  customer-svc:
+    build: 
+      context: ../services/customer-svc
+    container_name: bizflow-customer-svc
+    ports:
+      - "4005:4005"
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_customer?sslmode=require&channel_binding=require
+      - AI_API_KEY=${AI_API_KEY}
+    networks:
+      - bizflow-network
 
   # --- REPORT SERVICE ---
   report-svc:
@@ -93,6 +90,18 @@ services:
       - "4004:4004"
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_report?sslmode=require&channel_binding=require
+    networks:
+      - bizflow-network
+
+  ai-svc:
+    build: ../services/ai-svc
+    platform: linux/amd64
+    container_name: bizflow-ai-svc
+    restart: always
+    ports:
+      - "5005:5000" 
+    environment:
+      - GEMINI_API_KEY=AIzaSyBVFYuv1I9Py7nWW_9zSZZByJQqAu9tcYM 
     networks:
       - bizflow-network
 

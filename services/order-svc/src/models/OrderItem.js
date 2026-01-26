@@ -1,6 +1,4 @@
-// Lưu trữ chi tiết các mặt hàng trong đơn hàng.
-
-import database from '../database/db.js';
+import database from '../config/db.js';
 
 export const createOrderItemTable = async () => {
     try {
@@ -8,13 +6,12 @@ export const createOrderItemTable = async () => {
             CREATE TABLE IF NOT EXISTS order_item (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 order_id UUID NOT NULL,
-                product_id UUID NOT NULL,
+                product_id UUID NOT NULL, -- Tham chiếu logical tới Product Service
                 quantity INT NOT NULL CHECK (quantity > 0),
                 price DECIMAL(19, 2) NOT NULL CHECK (price >= 0),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    
-                FOREIGN KEY (order_id) REFERENCES sales_order(id) ON DELETE CASCADE,
-                FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+                
+                FOREIGN KEY (order_id) REFERENCES sales_order(id) ON DELETE CASCADE
             );
         `;
         await database.query(query);

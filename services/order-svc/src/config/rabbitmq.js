@@ -1,19 +1,37 @@
 import amqp from 'amqplib';
 
 let channel;
+let connection;
 
 export const connectRabbitMQ = async () => {
     try {
-        const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://localhost');
+        const amqpServer = process.env.RABBITMQ_URI || 'amqp://guest:guest@localhost:5672';
+        connection = await amqp.connect(amqpServer);
         channel = await connection.createChannel();
-        await channel.assertQueue('ORDER_CREATED'); // Queue thông báo đơn hàng mới
-        console.log("Connected to RabbitMQ");
+        
+        // Khai báo Exchange loại 'topic' hoặc 'direct' để broadcast event
+        await channel.assertExchange('bizflow_event_bus', 'topic', { durable: true });
+        
+        console.log('Connected to RabbitMQ');
     } catch (error) {
-        console.error("RabbitMQ Connection Error:", error);
+        console.error('Failed to connect to RabbitMQ:', error);
+        // Retry logic could be added here
     }
 };
 
-export const publishOrderCreated = (orderData) => {
-    if (!channel) return;
-    channel.sendToQueue('ORDER_CREATED', Buffer.from(JSON.stringify(orderData)));
-};    
+export const publishOrderCreated = async (orderData) => {
+    if (!channel) {
+        console.error('RabbitMQ channel is not available');
+        return;
+    }
+    
+    try {
+        const routingKey = 'order.created';
+        const msg = JSON.stringify(orderData);
+        
+        channel.publish('bizflow_event_bus', routingKey, Buffer.from(msg));
+        console.log(`Event Published: ${routingKey}`);
+    } catch (error) {
+        console.error('Error publishing message:', error);
+    }
+};
