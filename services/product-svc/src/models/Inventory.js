@@ -1,13 +1,32 @@
-export const InventoryModel = `
-  CREATE TABLE IF NOT EXISTS inventory (
-      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      product_id UUID UNIQUE NOT NULL,
-      stock INT NOT NULL CHECK (stock >= 0),
-      average_cost DECIMAL(15, 2) DEFAULT 0,
-      
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      
-      FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
-  );
-`;
+const { DataTypes } = require('sequelize');
+const db = require('../config/db');
+
+const Inventory = db.define('Inventory', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    product_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false
+    },
+    quantity: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        defaultValue: 0
+    },
+    min_stock_level: {
+        type: DataTypes.INTEGER,
+        defaultValue: 10
+    },
+    location: {
+        type: DataTypes.STRING,
+        allowNull: true
+    }
+}, {
+    tableName: 'inventories',
+    timestamps: true
+});
+
+module.exports = Inventory;

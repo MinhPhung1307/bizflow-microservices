@@ -1,7 +1,7 @@
 const { DataTypes } = require('sequelize');
 const db = require('../config/db');
 
-const Uom = db.define('Uom', {
+const Category = db.define('Category', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -9,7 +9,7 @@ const Uom = db.define('Uom', {
     },
     name: {
         type: DataTypes.STRING,
-        allowNull: false // Ví dụ: Cái, Hộp, Thùng
+        allowNull: false
     },
     description: {
         type: DataTypes.STRING,
@@ -17,11 +17,12 @@ const Uom = db.define('Uom', {
     },
     owner_id: {
         type: DataTypes.INTEGER,
-        allowNull: false
+        allowNull: false,
+        comment: 'ID của chủ cửa hàng (Multi-tenant)'
     }
 }, {
-    tableName: 'uoms',
+    tableName: 'categories',
     timestamps: true
 });
 
-module.exports = Uom;
+module.exports = Category;

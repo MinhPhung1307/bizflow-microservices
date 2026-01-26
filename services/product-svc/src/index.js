@@ -1,32 +1,42 @@
-import express from 'express';
-import cors from 'cors';
-import cookieParser from 'cookie-parser';
-import dotenv from 'dotenv';
-import { initTables } from './models/index.js';
-import productRoutes from './routes/productRoutes.js';
-
-dotenv.config();
-
+const express = require('express');
 const app = express();
+require('dotenv').config();
+
+// QUAN TRỌNG: Phải dùng { } để lấy hàm initDB ra từ object exports
+const { initDB } = require('./models'); 
+const productRoutes = require('./routes/productRoutes');
+const consumeOrderCreated = require('./consumers/InventoryConsumer');
+
 const PORT = process.env.PORT || 4002;
 
-// Middleware
-app.use(cookieParser());
-app.use(cors());
+// Middleware xử lý JSON
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-initTables();
 
 // Routes
-app.use('/', productRoutes);
+app.use('/api/products', productRoutes);
 
-// Health check cho Docker/K8s
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'OK', service: 'product-svc' });
-});
+// Khởi chạy Server
+const startServer = async () => {
+    try {
+        // 1. Kết nối Database trước
+        await initDB();
 
-// Start server
-app.listen(PORT, () => {
-  console.log(` Product Service running on port ${PORT}`);
-});
+        // 2. Lắng nghe RabbitMQ (Nếu có lỗi kết nối RabbitMQ cũng không làm sập app ngay)
+        try {
+            //await consumeOrderCreated();
+        } catch (mqError) {
+            console.error('⚠️ RabbitMQ connection failed (Check if RabbitMQ is running):', mqError.message);
+        }
+
+        // 3. Mở cổng Server
+        app.listen(PORT, () => {
+            console.log(`🚀 Product Service running on port ${PORT}`);
+        });
+
+    } catch (error) {
+        console.error('❌ Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
+startServer();

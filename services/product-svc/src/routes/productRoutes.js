@@ -1,11 +1,13 @@
-import express from 'express';
-import * as ProductController from '../controllers/ProductController.js';
-import { verifyToken } from '../middleware/authMiddleware.js'
-
+const express = require('express');
 const router = express.Router();
+const productController = require('../controllers/ProductController');
 
-router.use(verifyToken);
+// Routes hiện có...
+// router.post('/', productController.createProduct);
+// router.get('/', productController.getAllProducts);
 
-router.get('/', ProductController.getAllProducts);
+// --- ROUTE MỚI BỔ SUNG ---
+router.get('/search', productController.searchProducts); // API Tìm kiếm
+router.post('/import', productController.importStock);   // API Nhập kho
 
-export default router;
+module.exports = router;
