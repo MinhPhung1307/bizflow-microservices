@@ -12,6 +12,7 @@ export const connectRabbitMQ = async () => {
     
     // Tạo queue để lắng nghe các sự kiện liên quan đến sản phẩm/kho
     await channel.assertQueue('product_inventory_updates'); 
+    await channel.assertQueue('system_audit_logs');
     
     console.log(' Connected to RabbitMQ');
     return channel;

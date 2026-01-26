@@ -26,18 +26,19 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Header() {
   const router = useRouter();
+  
   // Sử dụng Store thay vì localStorage để dữ liệu luôn tươi mới
   const { user, fetchUser, loading, setUser } = useUserStore();
 
   useEffect(() => {
-    // Chỉ fetch nếu chưa có user
+    // Chỉ fetch nếu chưa có user trong store
     if (!user) {
       fetchUser();
     }
   }, [user, fetchUser]);
 
   const handleLogout = async () => {
-    // 1. XÓA NGAY LẬP TỨC local storage (Logic cũ của bạn)
+    // 1. XÓA NGAY LẬP TỨC local storage
     if (typeof window !== "undefined") {
       localStorage.removeItem("token");
       localStorage.removeItem("role");
@@ -47,10 +48,10 @@ export default function Header() {
     // Xóa user trong store
     setUser(null as any);
 
-    // 2. Gọi API Logout
+    // 2. Gọi API Logout (chạy ngầm)
     authService.logout().catch((err) => console.log("Logout API error:", err));
 
-    // 3. Chuyển hướng
+    // 3. Chuyển hướng về trang login
     setTimeout(() => {
       window.location.href = "/login";
     }, 100);

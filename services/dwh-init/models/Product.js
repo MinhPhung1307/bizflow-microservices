@@ -13,9 +13,12 @@ export const createProductTable = async () => {
                 category VARCHAR(100),
                 price DECIMAL(19, 2) NOT NULL CHECK (price >= 0),
                 stock INT NOT NULL CHECK (stock >= 0),
+                unit VARCHAR(50) NOT NULL,
                 images JSONB DEFAULT '[]'::JSONB, -- Mảng lưu trữ các URL hình ảnh sản phẩm
                 is_active BOOLEAN NOT NULL DEFAULT TRUE, -- Sản phẩm có đang hoạt động hay không
+
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE,
                 UNIQUE (owner_id, name) -- Tên sản phẩm duy nhất trong phạm vi 1 Owner

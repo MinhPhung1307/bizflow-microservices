@@ -1,14 +1,20 @@
 import express from 'express';
-import ProductController from '../controllers/ProductController.js';
-// Nếu bạn muốn bảo vệ route (chỉ admin được tạo), hãy uncomment dòng dưới
-// import { protect } from '../config/authMiddleware.js'; 
+import * as ProductController from '../controllers/ProductController.js';
+import { verifyToken } from '../middleware/authMiddleware.js'
 
 const router = express.Router();
 
+router.use(verifyToken);
+
 router.get('/', ProductController.getAllProducts);
 router.get('/:id', ProductController.getProductById);
+router.post('/', ProductController.createProduct);
+router.put('/:id', ProductController.updateProduct);
+router.delete('/:id', ProductController.deleteProduct);
 
-// Thêm middleware protect nếu cần thiết: router.post('/', protect, ProductController.createProduct);
-router.post('/', ProductController.createProduct); 
+router.get('/uoms/all', ProductController.getAllUoms);
+router.get('/uoms/store', ProductController.getStoreUoms);
+router.post('/import', ProductController.importStock);
+
 
 export default router;

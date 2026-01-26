@@ -13,6 +13,9 @@ export const createProductUomTable = async () => {
                 is_base_unit BOOLEAN DEFAULT false, -- Có phải đơn vị nhỏ nhất để tính kho không?
                 selling_price DECIMAL(15, 2), -- Giá bán riêng cho đơn vị này (ví dụ mua cả tấn rẻ hơn mua lẻ kg)
 
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
                 CONSTRAINT unique_product_uom UNIQUE (product_id, uom_id)
             );
         `;
