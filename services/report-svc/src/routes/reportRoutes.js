@@ -1,17 +1,23 @@
 // src/routes/reportRoutes.js
 import express from 'express';
 import ReportController from '../controllers/ReportController.js';
-import { verifyToken, isOwner } from '../middleware/authMiddleware.js';
+import { verifyToken, isOwner, isAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-// Tất cả các route dưới đây đều yêu cầu đăng nhập (verifyToken)
-router.use(verifyToken);
+router.use(verifyToken); // Tất cả đều cần đăng nhập
 
-// Route: Lấy doanh thu ngày (Chỉ Owner mới được xem)
-router.get('/daily-revenue', isOwner, ReportController.getDailyRevenue);
+// --- API CHO CHỦ CỬA HÀNG (OWNER) ---
+router.get('/daily-revenue', isOwner, ReportController.getDailyRevenue); // Cũ
+router.get('/recent-orders', isOwner, ReportController.getRecentOrders); // Cũ
 
-// Route: Lấy đơn hàng gần đây (Chỉ Owner mới được xem)
-router.get('/recent-orders', isOwner, ReportController.getRecentOrders);
+// Mới bổ sung
+router.get('/debt', isOwner, ReportController.getDebtReport);          // Xem ai đang nợ
+router.get('/inventory/low-stock', isOwner, ReportController.getLowStock); // Xem hàng sắp hết
+router.get('/best-sellers', isOwner, ReportController.getBestSellers); // Xem hàng bán chạy
+router.get('/compliance/ledger', isOwner, ReportController.getAccountingLedger); // Sổ sách thuế
+
+// --- API CHO QUẢN TRỊ VIÊN (ADMIN) ---
+router.get('/admin/stats', isAdmin, ReportController.getAdminStats); // Tổng quan hệ thống
 
 export default router;
