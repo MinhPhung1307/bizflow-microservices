@@ -102,7 +102,7 @@ services:
     ports:
       - "5005:5000" 
     environment:
-      - GEMINI_API_KEY=AIzaSyBVFYuv1I9Py7nWW_9zSZZByJQqAu9tcYM 
+      - GEMINI_API_KEY={GEMINI_API_KEY} 
     networks:
       - bizflow-network
 
