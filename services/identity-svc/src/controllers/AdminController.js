@@ -1,4 +1,4 @@
-// src/controllers/AuthController.js
+// src/controllers/AdminController.js
 import db from '../config/db.js';
 import bcrypt from 'bcryptjs';
 
@@ -442,4 +442,69 @@ export const updateSystemConfig = async (req, res) => {
         console.error("Update Config Error:", error);
         res.status(500).json({ message: "Lỗi khi lưu cấu hình" });
     }
+};
+
+// --- PHẦN MỚI THÊM VÀO: API THỐNG KÊ DASHBOARD (ĐỂ SỬA LỖI CRASH) ---
+
+export const getDashboardStats = async (req, res) => {
+    try {
+        const revenueQuery = `
+            SELECT SUM(sp.price) as total_revenue
+            FROM users u
+            JOIN subscription_plan sp ON u.plan_id = sp.id
+            WHERE u.status = 'ACTIVE'
+        `;
+        const revenueResult = await db.query(revenueQuery);
+        const totalRevenue = parseInt(revenueResult.rows[0]?.total_revenue) || 0;
+
+        const ownersQuery = `
+            SELECT 
+                COUNT(*) as total,
+                COUNT(CASE WHEN status = 'ACTIVE' THEN 1 END) as active
+            FROM users 
+            WHERE role_id = (SELECT id FROM role WHERE role_name = 'OWNER')
+        `;
+        const ownersResult = await db.query(ownersQuery);
+        
+        const plansResult = await db.query('SELECT COUNT(*) FROM subscription_plan');
+
+        res.status(200).json({
+            totalRevenue: totalRevenue,
+            totalOwners: parseInt(ownersResult.rows[0]?.total) || 0,
+            activeOwners: parseInt(ownersResult.rows[0]?.active) || 0,
+            totalPlans: parseInt(plansResult.rows[0]?.count) || 0
+        });
+
+    } catch (error) {
+        console.error("Dashboard Stats Error:", error);
+        res.status(500).json({ message: "Lỗi lấy thống kê dashboard" });
+    }
+};
+
+export const getRevenueStats = async (req, res) => {
+    // Dữ liệu giả lập
+    const mockData = [
+        { date: '2024-01-01', value: 1500000 },
+        { date: '2024-01-02', value: 2300000 },
+        { date: '2024-01-03', value: 1800000 },
+        { date: '2024-01-04', value: 3200000 },
+        { date: '2024-01-05', value: 2100000 },
+        { date: '2024-01-06', value: 4500000 },
+        { date: '2024-01-07', value: 3800000 },
+    ];
+    res.status(200).json(mockData);
+};
+
+export const getGrowthStats = async (req, res) => {
+    // Dữ liệu giả lập
+    const mockData = [
+        { date: '2024-01-01', value: 5 },
+        { date: '2024-01-02', value: 12 },
+        { date: '2024-01-03', value: 18 },
+        { date: '2024-01-04', value: 25 },
+        { date: '2024-01-05', value: 30 },
+        { date: '2024-01-06', value: 45 },
+        { date: '2024-01-07', value: 50 },
+    ];
+    res.status(200).json(mockData);
 };
