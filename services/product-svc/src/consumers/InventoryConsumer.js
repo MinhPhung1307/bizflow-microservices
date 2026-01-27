@@ -1,71 +1,59 @@
 const amqp = require('amqplib');
 const { Inventory, StockTransaction, sequelize } = require('../models');
 
-// URL RabbitMQ (nên để trong .env)
-const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
-
 const consumeOrderCreated = async () => {
     try {
-        const connection = await amqp.connect(RABBITMQ_URL);
+        const rabbitUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
+        const connection = await amqp.connect(rabbitUrl);
         const channel = await connection.createChannel();
-        
-        const exchange = 'order_exchange';
-        const queue = 'product_service_inventory_queue';
-        const routingKey = 'order.created';
+        const queue = 'order_created_queue';
 
-        await channel.assertExchange(exchange, 'topic', { durable: true });
         await channel.assertQueue(queue, { durable: true });
-        await channel.bindQueue(queue, exchange, routingKey);
-
-        console.log(` [*] Listening for '${routingKey}' events in '${queue}'`);
+        console.log(`🐰 Waiting for messages in ${queue}...`);
 
         channel.consume(queue, async (msg) => {
-            if (msg.content) {
+            if (msg !== null) {
                 const orderData = JSON.parse(msg.content.toString());
-                console.log(" [x] Processing Order:", orderData.order_id);
+                console.log('📦 Received Order:', orderData.order_id);
 
                 const t = await sequelize.transaction();
+
                 try {
-                    // Duyệt qua từng sản phẩm trong đơn hàng để trừ kho
                     for (const item of orderData.items) {
+                        // 1. Tìm kho
                         const inventory = await Inventory.findOne({ 
-                            where: { product_id: item.product_id } 
-                        });
-
-                        if (!inventory) {
-                            console.error(`Product ${item.product_id} not found in inventory`);
-                            continue; 
-                        }
-
-                        // Trừ số lượng tồn kho
-                        await inventory.decrement('quantity', { 
-                            by: item.quantity, 
+                            where: { product_id: item.product_id },
                             transaction: t 
                         });
 
-                        // Ghi log lịch sử giao dịch (Xuất kho bán hàng)
-                        await StockTransaction.create({
-                            product_id: item.product_id,
-                            quantity_change: -item.quantity, // Số âm
-                            transaction_type: 'SALE',
-                            reference_id: `ORDER_${orderData.order_id}`,
-                            note: `Xuất kho bán hàng đơn #${orderData.order_id}`,
-                            performed_by: orderData.employee_id
-                        }, { transaction: t });
+                        if (inventory) {
+                            // 2. Trừ tồn kho
+                            inventory.quantity -= item.quantity;
+                            await inventory.save({ transaction: t });
+
+                            // 3. Ghi lịch sử giao dịch (StockTransaction)
+                            await StockTransaction.create({
+                                product_id: item.product_id,
+                                transaction_type: 'OUT',
+                                quantity: item.quantity,
+                                reason: `Order #${orderData.order_id}`,
+                                reference_id: orderData.order_id.toString()
+                            }, { transaction: t });
+                        }
                     }
 
                     await t.commit();
-                    console.log(" [x] Inventory updated successfully.");
-                    channel.ack(msg); // Xác nhận đã xử lý xong
+                    console.log(`✅ Inventory updated for Order #${orderData.order_id}`);
+                    channel.ack(msg);
                 } catch (err) {
                     await t.rollback();
-                    console.error(" [!] Error updating inventory:", err.message);
-                    channel.nack(msg, false, false); // Trả lại hàng đợi hoặc đẩy vào DLQ
+                    console.error('❌ Error updating inventory:', err);
+                    // channel.nack(msg); // Cân nhắc dùng nack nếu muốn thử lại
                 }
             }
         });
     } catch (error) {
-        console.error("RabbitMQ Consumer Error:", error);
+        console.error('❌ RabbitMQ Connection Error:', error);
     }
 };
 

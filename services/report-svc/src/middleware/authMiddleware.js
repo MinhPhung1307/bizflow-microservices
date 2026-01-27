@@ -1,8 +1,8 @@
 import jwt from 'jsonwebtoken';
-import database from '../database/db.js';
-import { config } from 'dotenv';
+import database from '../config/db.js'; // <-- Đã sửa đường dẫn cho đúng cấu trúc
+import dotenv from 'dotenv';
 
-config({ path: './config/config.env' });
+dotenv.config();
 
 /**
  * Middleware xác thực JWT Token
@@ -22,6 +22,7 @@ export const verifyToken = (req, res, next) => {
     if (!token) return res.status(401).json({ message: "Không tìm thấy Token" });
 
     try {
+        // Đảm bảo biến môi trường JWT_SECRET_KEY đã được khai báo trong docker-compose
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
         req.user = decoded;
         next();
@@ -69,13 +70,13 @@ export const isAdmin = async (req, res, next) => {
     }
 };
 
+/**
+ * Middleware kiểm tra quyền OWNER (Chủ hộ kinh doanh)
+ */
 export const isOwner = async (req, res, next) => {
     try {
-        // userId thường được gán vào req.user sau khi đi qua middleware verifyToken
         const userId = req.user.userId; 
 
-        // Truy vấn database để lấy tên vai trò (role_name) của user hiện tại
-        // Dựa trên bảng 'users' kết hợp với bảng 'role' qua 'role_id'
         const query = `
             SELECT r.role_name 
             FROM users u
@@ -85,7 +86,6 @@ export const isOwner = async (req, res, next) => {
         
         const result = await database.query(query, [userId]);
 
-        // Kiểm tra nếu không tìm thấy user trong database
         if (result.rows.length === 0) {
             return res.status(404).json({ 
                 success: false,
@@ -95,8 +95,9 @@ export const isOwner = async (req, res, next) => {
 
         const roleName = result.rows[0].role_name;
 
-        // Kiểm tra nếu vai trò không phải là OWNER
-        // Theo yêu cầu dự án BizFlow, các vai trò chính gồm: ADMIN, OWNER, EMPLOYEE
+        // Kiểm tra quyền Owner
+        // Lưu ý: Nếu bạn muốn Admin cũng có thể xem báo cáo của Owner thì sửa dòng dưới thành:
+        // if (roleName !== 'OWNER' && roleName !== 'ADMIN')
         if (roleName !== 'OWNER') {
             return res.status(403).json({ 
                 success: false,
@@ -104,7 +105,6 @@ export const isOwner = async (req, res, next) => {
             });
         }
 
-        // Nếu đúng là Owner, cho phép thực hiện các bước tiếp theo (next middleware hoặc controller)
         next();
     } catch (error) {
         console.error("Owner Check Error:", error);

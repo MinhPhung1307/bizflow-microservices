@@ -14,11 +14,6 @@ const Category = db.define('Category', {
     description: {
         type: DataTypes.STRING,
         allowNull: true
-    },
-    owner_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'ID của chủ cửa hàng (Multi-tenant)'
     }
 }, {
     tableName: 'categories',

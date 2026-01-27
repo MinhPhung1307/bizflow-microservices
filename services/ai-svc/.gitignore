@@ -1,0 +1,21 @@
+# Bỏ qua thư mục môi trường ảo (Rất quan trọng - thư mục này rất nặng)
+venv/
+env/
+.venv/
+
+# Bỏ qua file biến môi trường (Chứa API Key, mật khẩu - KHÔNG BAO GIỜ UP FILE NÀY)
+.env
+
+# Bỏ qua các file cache/bytecode của Python (File rác sinh ra khi chạy code)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.db
+.DS_Store
+
+# Bỏ qua các file log hoặc database cục bộ (nếu có dùng SQLite/ChromaDB local)
+*.log
+*.sqlite3
+chroma_db/

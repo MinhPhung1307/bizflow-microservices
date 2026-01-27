@@ -1,5 +1,5 @@
 const { DataTypes } = require('sequelize');
-const db = require('../config/db'); // Import kết nối mới
+const db = require('../config/db');
 
 const Product = db.define('Product', {
     id: {

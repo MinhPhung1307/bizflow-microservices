@@ -22,6 +22,21 @@ services:
         paths:
           - /api/orders
 
+  - name: customer-service
+    url: http://customer-svc:4005
+    routes:
+      - name: customer-routes
+        paths:
+          - /api/customers
+
+  - name: report-service
+    url: http://report-svc:4004
+    routes:
+    - name: report-route
+      paths:
+        - /api/reports
+      strip_path: true
+
 plugins:
   - name: prometheus # Tự động thu thập chỉ số cho tất cả service
   - name: rate-limiting

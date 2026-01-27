@@ -11,26 +11,19 @@ const StockTransaction = db.define('StockTransaction', {
         type: DataTypes.INTEGER,
         allowNull: false
     },
-    quantity_change: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        comment: 'Số dương là nhập, số âm là xuất'
-    },
     transaction_type: {
-        type: DataTypes.ENUM('IMPORT', 'SALE', 'RETURN', 'ADJUSTMENT'),
+        type: DataTypes.ENUM('IN', 'OUT'), // Nhập kho hoặc Xuất kho
         allowNull: false
     },
-    reference_id: {
-        type: DataTypes.STRING,
-        allowNull: true,
-        comment: 'Mã đơn hàng hoặc mã phiếu nhập'
-    },
-    performed_by: {
+    quantity: {
         type: DataTypes.INTEGER,
-        allowNull: true,
-        comment: 'ID nhân viên thực hiện'
+        allowNull: false
     },
-    note: {
+    reason: { // Ví dụ: "Đơn hàng #123", "Nhập hàng mới"
+        type: DataTypes.STRING,
+        allowNull: true
+    },
+    reference_id: { // Lưu ID đơn hàng hoặc ID phiếu nhập
         type: DataTypes.STRING,
         allowNull: true
     }

@@ -20,6 +20,8 @@ services:
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=123456
+    networks:            
+      - bizflow-network  
 
   # --- IDENTITY SERVICE ---
   identity-svc:
@@ -31,6 +33,8 @@ services:
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - PORT=4001
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
+      - JWT_SECRET_KEY=minhphungdevsecretkey
     depends_on:
       - rabbitmq
     networks:
@@ -46,6 +50,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_product?sslmode=require&channel_binding=require
       - PORT=4002
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
     depends_on:
       - rabbitmq
     networks:
@@ -64,6 +69,19 @@ services:
     networks:
       - bizflow-network
 
+  # --- CUSTOMER SERVICE ---
+  customer-svc:
+    build: 
+      context: ../services/customer-svc
+    container_name: bizflow-customer-svc
+    ports:
+      - "4005:4005"
+    environment:
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_customer?sslmode=require&channel_binding=require
+      - AI_API_KEY=${AI_API_KEY}
+    networks:
+      - bizflow-network
+
   # --- REPORT SERVICE ---
   report-svc:
     build: 
@@ -73,6 +91,18 @@ services:
       - "4004:4004"
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_report?sslmode=require&channel_binding=require
+    networks:
+      - bizflow-network
+
+  ai-svc:
+    build: ../services/ai-svc
+    platform: linux/amd64
+    container_name: bizflow-ai-svc
+    restart: always
+    ports:
+      - "5005:5000" 
+    environment:
+      - GEMINI_API_KEY={GEMINI_API_KEY}
     networks:
       - bizflow-network
 
