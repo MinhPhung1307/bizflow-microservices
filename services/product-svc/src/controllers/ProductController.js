@@ -347,6 +347,7 @@ export const importStock = async (req, res) => {
             entity_type: 'inventory',
             entity_id: productId,
             new_value: { 
+                productId,
                 qty: quantity, 
                 price: importPrice, 
                 total: Number(quantity) * Number(importPrice) 
@@ -356,10 +357,17 @@ export const importStock = async (req, res) => {
 
         const mqChannel = getChannel();
         if (mqChannel) {
-            mqChannel.sendToQueue(
+            const isSent = mqChannel.sendToQueue(
                 'system_audit_logs',
-                Buffer.from(JSON.stringify(logData))
+                Buffer.from(JSON.stringify(logData)),
+                { persistent: true } // Đảm bảo tin nhắn được lưu xuống đĩa nếu RabbitMQ restart
             );
+            if (!isSent) {
+                throw new Error("RabbitMQ buffer full - Không thể gửi log");
+            }
+            console.log("Đã đẩy log vào hàng đợi RabbitMQ");
+        } else {
+            throw new Error("Không thể kết nối RabbitMQ - Hủy giao dịch");
         }
 
         await client.query('COMMIT');
