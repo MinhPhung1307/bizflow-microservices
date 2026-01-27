@@ -65,7 +65,7 @@ services:
       - "4003:4003"
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_order?sslmode=require&channel_binding=require
-      - AI_API_KEY=${AI_API_KEY}
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
     networks:
       - bizflow-network
 
@@ -78,7 +78,7 @@ services:
       - "4005:4005"
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_customer?sslmode=require&channel_binding=require
-      - AI_API_KEY=${AI_API_KEY}
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
     networks:
       - bizflow-network
 

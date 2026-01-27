@@ -24,7 +24,7 @@ const startServer = async () => {
         await connectRabbitMQ();
 
         // 3. Start Server
-        const PORT = process.env.PORT || 5003;
+        const PORT = process.env.PORT || 4003;
         app.listen(PORT, () => {
             console.log(`🚀 Order Service running on port ${PORT}`);
         });
