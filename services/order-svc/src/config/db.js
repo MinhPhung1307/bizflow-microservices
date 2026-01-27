@@ -28,8 +28,14 @@ class Database {
         Database.instance = this;
     }
 
+    // Hàm query rút gọn (dùng cho lệnh đơn)
     query(text, params) {
         return this.pool.query(text, params);
+    }
+
+    // Hàm lấy client từ pool (dùng cho Transaction)
+    connect() {
+        return this.pool.connect();
     }
 }
 

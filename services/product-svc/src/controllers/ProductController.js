@@ -1,4 +1,4 @@
-const { Product, Inventory, Category, StockImport, StockTransaction, sequelize } = require('../models');
+const { Product, Inventory, Category, StockImport, StockTransaction, Uom, sequelize, ProductUom } = require('../models');
 const { Op } = require('sequelize');
 const xlsx = require('xlsx');
 const fs = require('fs');
@@ -8,27 +8,112 @@ const fs = require('fs');
 
 const ProductController = {
 
+    getProductUoms: async (req, res) => {
+        try {
+            const { id } = req.params;
+            
+            // Tìm trong bảng trung gian ProductUom
+            const uoms = await ProductUom.findAll({
+                where: { product_id: id },
+                include: [
+                    { 
+                        model: Uom,
+                        attributes: ['uom_name', 'id'] // Lấy tên đơn vị để hiển thị
+                    }
+                ]
+            });
+
+            // Flatten dữ liệu trả về cho tiện Frontend sử dụng (Optional, nhưng tốt cho logic hiện tại của bạn)
+            const data = uoms.map(item => ({
+                id: item.id,
+                product_id: item.product_id,
+                uom_id: item.uom_id,
+                uom_name: item.Uom ? item.Uom.uom_name : '', // Lấy tên từ bảng Uom
+                conversion_factor: item.conversion_factor,
+                is_base_unit: item.is_base_unit,
+                selling_price: item.selling_price
+            }));
+
+            res.json({ success: true, data: data });
+        } catch (error) {
+            console.error("Get Product Uoms Error:", error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+
+    createUom: async (req, res) => {
+        try {
+            const { uom_name } = req.body;
+            const owner_id = req.user ? (req.user.userId || req.user.id) : null;
+            
+            if (!uom_name || !owner_id) {
+                return res.status(400).json({ success: false, message: "Thiếu tên đơn vị hoặc thông tin người dùng" });
+            }
+
+            const newUom = await Uom.create({
+                uom_name,
+                owner_id
+            });
+
+            res.status(201).json({ success: true, data: newUom });
+        } catch (error) {
+            console.error("Create UOM Error:", error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    },
+
+    getAllUoms: async (req, res) => {
+        try {
+            const whereClause = {};
+            // Lọc theo owner nếu có
+            if (req.user && (req.user.userId || req.user.id)) {
+                whereClause.owner_id = req.user.userId || req.user.id;
+            }
+
+            const uoms = await Uom.findAll({
+                where: whereClause,
+                order: [['uom_name', 'ASC']]
+            });
+            
+            res.json({ success: true, data: uoms });
+        } catch (error) {
+            console.error("Get UOMs Error:", error);
+            res.status(500).json({ success: false, message: "Lỗi lấy danh sách đơn vị tính" });
+        }
+    },
+
     // 1. Lấy danh sách sản phẩm (Hỗ trợ phân trang & Owner)
     getAllProducts: async (req, res) => {
         try {
-            const { page = 1, limit = 10 } = req.query;
+            // Lấy thêm tham số 'search' từ query
+            const { page = 1, limit = 10, search } = req.query;
             const offset = (page - 1) * limit;
             
-            // Giả sử lấy owner_id từ token (nếu có middleware auth), nếu không thì bỏ qua
             const whereClause = {};
-            if (req.user && req.user.id) {
-                whereClause.owner_id = req.user.id;
+            
+            // 1. Filter theo Owner
+            if (req.user && (req.user.userId || req.user.id)) {
+                whereClause.owner_id = req.user.userId || req.user.id;
+            }
+
+            // 2. Filter theo Search (Tên hoặc Mã)
+            if (search) {
+                whereClause[Op.or] = [
+                    { name: { [Op.iLike]: `%${search}%` } },
+                    { code: { [Op.iLike]: `%${search}%` } }
+                ];
             }
 
             const { count, rows } = await Product.findAndCountAll({
                 where: whereClause,
                 include: [
                     { model: Category, attributes: ['id', 'name'] },
-                    { model: Inventory, attributes: ['quantity'] }
+                    // Nếu Model Inventory đã bỏ (gộp vào Product) thì bỏ dòng dưới đi
+                    // { model: Inventory, attributes: ['quantity'] } 
                 ],
                 limit: parseInt(limit),
                 offset: parseInt(offset),
-                order: [['createdAt', 'DESC']]
+                order: [['created_at', 'DESC']] // Chú ý: dùng created_at (snake_case) theo DB mới
             });
 
             res.json({

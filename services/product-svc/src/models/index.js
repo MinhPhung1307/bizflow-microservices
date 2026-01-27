@@ -3,10 +3,8 @@ const Product = require('./Product');
 const Inventory = require('./Inventory');
 const Uom = require('./Uom');
 const ProductUom = require('./ProductUom');
-// Import các model mới và model có trong RAR
 const Category = require('./Category');
-const StockTransaction = require('./StockTransaction');
-const StockImport = require('./StockImport'); // Giữ lại cái có trong RAR
+const StockImport = require('./StockImport');
 
 // --- ĐỊNH NGHĨA QUAN HỆ (ASSOCIATIONS) ---
 
@@ -21,14 +19,16 @@ Inventory.belongsTo(Product, { foreignKey: 'product_id' });
 // 3. Product - Uom
 Product.belongsToMany(Uom, { through: ProductUom, foreignKey: 'product_id' });
 Uom.belongsToMany(Product, { through: ProductUom, foreignKey: 'uom_id' });
+
+// Quan hệ trực tiếp với bảng trung gian (ProductUom)
 Product.hasMany(ProductUom, { foreignKey: 'product_id' });
 ProductUom.belongsTo(Product, { foreignKey: 'product_id' });
 
-// 4. Product - StockTransaction (Lịch sử kho)
-Product.hasMany(StockTransaction, { foreignKey: 'product_id' });
-StockTransaction.belongsTo(Product, { foreignKey: 'product_id' });
+Uom.hasMany(ProductUom, { foreignKey: 'uom_id' });
+ProductUom.belongsTo(Uom, { foreignKey: 'uom_id' });
 
-// 5. Product - StockImport (Giữ lại logic nhập hàng trong RAR)
+
+// 5. Product - StockImport
 Product.hasMany(StockImport, { foreignKey: 'product_id' });
 StockImport.belongsTo(Product, { foreignKey: 'product_id' });
 
@@ -38,9 +38,9 @@ const initDB = async () => {
         await sequelize.authenticate();
         console.log('✅ Database connection established.');
         
-        // alter: true giúp tự động thêm bảng Category, StockTransaction
+        // Sử dụng alter: true để cập nhật bảng nếu có thay đổi
         await sequelize.sync({ alter: true }); 
-        console.log('✅ Database synchronized (Tables created/updated).');
+        console.log('✅ Database synchronized.');
     } catch (error) {
         console.error('❌ Unable to connect to the database:', error);
     }
@@ -54,6 +54,5 @@ module.exports = {
     Uom,
     ProductUom,
     Category,
-    StockTransaction,
     StockImport
 };

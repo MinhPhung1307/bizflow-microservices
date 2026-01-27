@@ -14,7 +14,8 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/products', productRoutes);
+app.use('/api/products', productRoutes); 
+app.use('/', productRoutes);
 
 const startServer = async () => {
     try {
