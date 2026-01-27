@@ -31,10 +31,13 @@ services:
     ports:
       - "4001:4001"
     environment:
-      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - PORT=4001
-      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - JWT_SECRET_KEY=minhphungdevsecretkey
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
+      - NODE_ENV=production
+      - ADMIN_PHONE=012345678
+      - ADMIN_PASSWORD=123456
     depends_on:
       - rabbitmq
     networks:
