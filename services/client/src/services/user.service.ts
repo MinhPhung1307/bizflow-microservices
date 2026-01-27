@@ -5,8 +5,8 @@ import { UserProfile } from "@/types";
 export const userService = {
   // Lấy profile
   getProfile: async (): Promise<UserProfile> => {
-    // Gọi đến /identity-svc/users/profile
-    const response = await axios.get("/identity-svc/users/profile");
+    // SỬA: Gọi đúng đường dẫn mà Gateway đã định nghĩa (/users)
+    const response = await axios.get("/users/profile");
     // Backend trả về: { success: true, data: ... }
     return response.data.data;
   },
@@ -23,7 +23,8 @@ export const userService = {
       avatar: data.avatar ? { url: data.avatar } : undefined,
     };
 
-    const response = await axios.put("/identity-svc/users/profile", payload);
+    // SỬA: Gọi đúng đường dẫn mà Gateway đã định nghĩa (/users)
+    const response = await axios.put("/users/profile", payload);
     return response.data;
   },
 };

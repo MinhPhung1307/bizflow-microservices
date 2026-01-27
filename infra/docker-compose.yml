@@ -36,12 +36,15 @@ services:
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - PORT=4001
-      # Cấu hình RabbitMQ & JWT (Gộp từ cả 2 nhánh)
+      # --- SỬA: Thêm biến môi trường ADMIN để tránh lỗi undefined ---
+      - ADMIN_PHONE=${ADMIN_PHONE}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      # -------------------------------------------------------------
       - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
       - JWT_SECRET_KEY=minhphungdevsecretkey
       - JWT_SECRET=minhphungdevsecretkey
     volumes:
-      - ../services/identity-svc:/app       # Map code vào container để hot-reload
+      - ../services/identity-svc:/app
       - /app/node_modules
     depends_on:
       - rabbitmq
@@ -152,11 +155,11 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api
-      - WATCHPACK_POLLING=true   # Quan trọng cho Windows để hot-reload
+      - WATCHPACK_POLLING=true
     volumes:
-      - ../services/client:/app  # Map code từ máy vào container
-      - /app/node_modules        # Giữ nguyên thư viện trong container
-      - /app/.next               # Giữ cache build
+      - ../services/client:/app
+      - /app/node_modules
+      - /app/.next
     depends_on:
       - kong
     networks:
