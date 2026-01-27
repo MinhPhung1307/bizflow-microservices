@@ -94,18 +94,6 @@ services:
     networks:
       - bizflow-network
 
-  ai-svc:
-    build: ../services/ai-svc
-    platform: linux/amd64
-    container_name: bizflow-ai-svc
-    restart: always
-    ports:
-      - "5005:5000" 
-    environment:
-      - GEMINI_API_KEY=AIzaSyBVFYuv1I9Py7nWW_9zSZZByJQqAu9tcYM 
-    networks:
-      - bizflow-network
-
   # --- API GATEWAY ---
   kong:
     image: kong:latest
