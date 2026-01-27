@@ -36,15 +36,12 @@ export default function LoginPage() {
     const data = await authService.login(formData.phone_number, formData.password);
 
     // Xử lý Role (như cũ)
-    let roleName = 'EMPLOYEE';
-    if (data.role_id === 1 || data.role_id === '1') roleName = 'ADMIN';
-    if (data.role_id === 2 || data.role_id === '2') roleName = 'OWNER';
+    const roleName = data.role; // data.role là 'OWNER', 'ADMIN', etc.
 
-    Cookies.set('token', 'true', { expires: 1 });
+    Cookies.set('token', data.token, { expires: 1 });
     Cookies.set('role', roleName, { expires: 1 });
-    if (data.accessToken) {
-          localStorage.setItem('accessToken', data.accessToken);
-      }
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('role', roleName);
     localStorage.setItem('user', JSON.stringify(data));
 
     // Điều hướng
