@@ -1,0 +1,33 @@
+name: bizflow_mobile
+description: "BizFlow - Nền tảng chuyển đổi số cho hộ kinh doanh"
+publish_to: 'none' 
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.2.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # --- 1. Giao diện & Tiện ích UI ---
+  cupertino_icons: ^1.0.6
+  google_fonts: ^6.1.0        # Font chữ đẹp
+  intl: ^0.19.0               # Format tiền tệ, ngày tháng (GIỮ 1 DÒNG NÀY THÔI)
+  fl_chart: ^0.66.0           # Vẽ biểu đồ (GIỮ 1 DÒNG NÀY THÔI)
+
+  # --- 2. Kết nối API & Dữ liệu ---
+  dio: ^5.4.0                 # Gọi API
+  shared_preferences: ^2.2.2  # Lưu Token
+
+  # --- 3. Quản lý trạng thái ---
+  provider: ^6.1.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true

@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import { v4 as uuidv4 } from 'uuid';
 
 export const generateToken = (userId, role, res) => {
     // Chỉ lấy biến ra dùng, không cần config lại
@@ -9,8 +10,9 @@ export const generateToken = (userId, role, res) => {
         throw new Error('JWT_SECRET is not configured');
     }
 
-    const token = jwt.sign({ userId }, secret, {
+    const token = jwt.sign({ userId, jti: uuidv4() }, secret, {
         expiresIn: '7d',
+        issuer: 'kong',
     });
 
     const isProduction = process.env.NODE_ENV === 'production';

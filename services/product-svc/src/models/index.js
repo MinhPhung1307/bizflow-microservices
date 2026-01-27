@@ -1,25 +1,59 @@
-import pool from '../config/db.js';
-import { ProductModel } from './Product.js';
-import { InventoryModel } from './Inventory.js';
-import { UomModel } from './Uom.js';
-import { ProductUomModel } from './ProductUom.js';
-import { StockImportModel } from './StockImport.js';
+const sequelize = require('../config/db');
+const Product = require('./Product');
+const Inventory = require('./Inventory');
+const Uom = require('./Uom');
+const ProductUom = require('./ProductUom');
+// Import các model mới và model có trong RAR
+const Category = require('./Category');
+const StockTransaction = require('./StockTransaction');
+const StockImport = require('./StockImport'); // Giữ lại cái có trong RAR
 
-export const initTables = async () => {
-  try {
+// --- ĐỊNH NGHĨA QUAN HỆ (ASSOCIATIONS) ---
 
-    console.log("Starting DB Initialization...");
+// 1. Category - Product
+Category.hasMany(Product, { foreignKey: 'category_id' });
+Product.belongsTo(Category, { foreignKey: 'category_id' });
 
-    await pool.query(ProductModel);
-    await pool.query(InventoryModel);
-    await pool.query(UomModel);
-    await pool.query(ProductUomModel);
-    await pool.query(StockImportModel);
+// 2. Product - Inventory
+Product.hasOne(Inventory, { foreignKey: 'product_id' });
+Inventory.belongsTo(Product, { foreignKey: 'product_id' });
 
-    console.log("All Product DB Tables Initialized Successfully.");
-  } catch (err) {
-    console.error("Critical Error during Product DB Initialization:", err);
-    // Trong môi trường production, bạn có thể muốn dừng app nếu lỗi DB
-    process.exit(1); 
-  }
+// 3. Product - Uom
+Product.belongsToMany(Uom, { through: ProductUom, foreignKey: 'product_id' });
+Uom.belongsToMany(Product, { through: ProductUom, foreignKey: 'uom_id' });
+Product.hasMany(ProductUom, { foreignKey: 'product_id' });
+ProductUom.belongsTo(Product, { foreignKey: 'product_id' });
+
+// 4. Product - StockTransaction (Lịch sử kho)
+Product.hasMany(StockTransaction, { foreignKey: 'product_id' });
+StockTransaction.belongsTo(Product, { foreignKey: 'product_id' });
+
+// 5. Product - StockImport (Giữ lại logic nhập hàng trong RAR)
+Product.hasMany(StockImport, { foreignKey: 'product_id' });
+StockImport.belongsTo(Product, { foreignKey: 'product_id' });
+
+// --- HÀM KHỞI TẠO DATABASE ---
+const initDB = async () => {
+    try {
+        await sequelize.authenticate();
+        console.log('✅ Database connection established.');
+        
+        // alter: true giúp tự động thêm bảng Category, StockTransaction
+        await sequelize.sync({ alter: true }); 
+        console.log('✅ Database synchronized (Tables created/updated).');
+    } catch (error) {
+        console.error('❌ Unable to connect to the database:', error);
+    }
+};
+
+module.exports = {
+    sequelize,
+    initDB,
+    Product,
+    Inventory,
+    Uom,
+    ProductUom,
+    Category,
+    StockTransaction,
+    StockImport
 };

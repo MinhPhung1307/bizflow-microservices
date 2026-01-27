@@ -1,4 +1,9 @@
 _format_version: "3.0"
+consumers:
+  - username: bizflow
+    jwt_secrets:
+      - key: kong
+        secret: minhphungdevsecretkey
 services:
   - name: identity-svc
     url: http://identity-svc:4001
@@ -14,6 +19,8 @@ services:
       - name: product-route
         paths:
           - /api/products
+        plugins:
+          - name: jwt
       
   - name: order-service
     url: http://order-svc:4003
@@ -21,6 +28,8 @@ services:
       - name: order-route
         paths:
           - /api/orders
+        plugins:
+          - name: jwt
 
   - name: customer-service
     url: http://customer-svc:4005
@@ -28,6 +37,8 @@ services:
       - name: customer-routes
         paths:
           - /api/customers
+        plugins:
+          - name: jwt
 
   - name: report-service
     url: http://report-svc:4004
@@ -36,6 +47,8 @@ services:
       paths:
         - /api/reports
       strip_path: true
+      plugins:
+        - name: jwt
 
 plugins:
   - name: prometheus # Tự động thu thập chỉ số cho tất cả service
