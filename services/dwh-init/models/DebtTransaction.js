@@ -12,7 +12,7 @@ export const createDebtTransactionTable = async () => {
                 transaction_type VARCHAR(20) NOT NULL, -- DEBT_INC (phát sinh nợ), PAYMENT (thanh toán nợ)
                 amount DECIMAL(19, 2) NOT NULL,
                 note TEXT,
-                transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 recorded_by_user_id UUID NOT NULL,
                 
                 FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE,
