@@ -20,8 +20,7 @@ export const customerService = {
 
     return rawData.map((item: any) => ({
       id: item.id,
-      // Map từ DB (name) -> Frontend (full_name)
-      full_name: item.name, 
+      full_name: item.full_name, 
       phone_number: item.phone_number,
       address: item.address || '',
       // Map từ DB (total_outstanding_debt) -> Frontend (total_debt)

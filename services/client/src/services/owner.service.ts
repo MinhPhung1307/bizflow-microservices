@@ -51,7 +51,7 @@ export const ownerService = {
 
     // Lấy đơn vị tính của sản phẩm
     getProductUoms: async (productId: String) => {
-        const response = await api.get(`/owner/${productId}/uoms`);
+        const response = await api.get(`/products/${productId}/uoms`);
         return response.data;
     },
 
@@ -59,6 +59,7 @@ export const ownerService = {
         const response = await api.get('products/uoms/store');
         return response.data;
     },
+
 
     importStock: async (data: Object) => {
         return api.post('products/import', data);

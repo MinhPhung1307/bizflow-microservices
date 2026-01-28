@@ -122,8 +122,9 @@ export const login = async (req, res) => {
             });
         }
 
+        const ownerId = user.owner_id || user.id;
         // 7. Tạo mã Token JWT
-        const token = generateToken(user.id, user.role_name, res);
+        const token = generateToken(user.id, user.role_name, ownerId, res);
 
         // 8. Trả về thông tin người dùng (không kèm password) và token
         res.status(200).json({

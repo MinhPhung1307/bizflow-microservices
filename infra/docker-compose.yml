@@ -31,10 +31,13 @@ services:
     ports:
       - "4001:4001"
     environment:
-      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - PORT=4001
-      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_identity?sslmode=require&channel_binding=require
       - JWT_SECRET_KEY=minhphungdevsecretkey
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
+      - NODE_ENV=production
+      - ADMIN_PHONE=012345678
+      - ADMIN_PASSWORD=123456
     depends_on:
       - rabbitmq
     networks:
@@ -66,7 +69,8 @@ services:
       - "4003:4003"
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_order?sslmode=require&channel_binding=require
-      - AI_API_KEY=${AI_API_KEY}
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
+      - AI_SERVICE_URL=http://ai-svc:5000
     networks:
       - bizflow-network
 
@@ -79,7 +83,7 @@ services:
       - "4005:4005"
     environment:
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_customer?sslmode=require&channel_binding=require
-      - AI_API_KEY=${AI_API_KEY}
+      - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
     networks:
       - bizflow-network
 
@@ -95,6 +99,19 @@ services:
       - JWT_SECRET_KEY=minhphungdevsecretkey
     networks:
       - bizflow-network
+
+  ai-svc:
+      build: ../services/ai-svc
+      platform: linux/amd64
+      container_name: bizflow-ai-svc
+      restart: always
+      ports:
+        - "5005:5000" 
+      environment:
+        - GEMINI_API_KEY=AIzaSyDr0pe3ibK1Wzt2bfHVY2Glv52JaqwHVZ0 
+      networks:
+      - bizflow-network
+
 
   # --- API GATEWAY ---
   kong:

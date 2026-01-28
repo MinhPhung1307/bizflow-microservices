@@ -3,25 +3,27 @@ const db = require('../config/db');
 
 const Uom = db.define('Uom', {
     id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.INTEGER, // Schema là integer
         primaryKey: true,
-        autoIncrement: true
+        autoIncrement: true 
     },
-    name: {
+    uom_name: {
         type: DataTypes.STRING,
-        allowNull: false // Ví dụ: Cái, Hộp, Thùng
+        allowNull: false
     },
-    description: {
+    base_unit: {
         type: DataTypes.STRING,
         allowNull: true
     },
     owner_id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
         allowNull: false
     }
 }, {
-    tableName: 'uoms',
-    timestamps: true
+    tableName: 'uom',         // Tên bảng số ít
+    freezeTableName: true,
+    timestamps: true,
+    underscored: true,
 });
 
 module.exports = Uom;

@@ -1,51 +1,82 @@
 import { create } from 'zustand';
-import { Product } from '@/types';
+import { persist } from 'zustand/middleware';
 
-// Định nghĩa kiểu dữ liệu cho 1 item trong giỏ
-export interface CartItem extends Product {
+export interface CartItem {
+  id: string; // Product ID
+  name: string;
+  price: number;
   quantity: number;
+  uom_id?: string;
+  uom_name?: string;
+  image?: string;
 }
 
 interface CartState {
-  cart: CartItem[];
-  addToCart: (product: Product) => void;
+  items: CartItem[];
+  addToCart: (product: any) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
-  totalAmount: () => number;
+  total: () => number;
 }
 
-export const useCartStore = create<CartState>((set, get) => ({
-  cart: [],
+export const useCart = create<CartState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      
+      addToCart: (product) => {
+        const { items } = get();
+        const existingItem = items.find((i) => i.id === product.id);
 
-  addToCart: (product) => set((state) => {
-    const existing = state.cart.find((item) => item.id === product.id);
-    if (existing) {
-      // Nếu đã có thì tăng số lượng
-      return {
-        cart: state.cart.map((item) =>
-          item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
-        ),
-      };
+        if (existingItem) {
+          set({
+            items: items.map((i) =>
+              i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i
+            ),
+          });
+        } else {
+          set({
+            items: [
+              ...items,
+              {
+                id: product.id,
+                name: product.name,
+                price: Number(product.price_sales) || 0, // Đảm bảo giá là số
+                quantity: 1,
+                uom_id: product.uom_id,
+                uom_name: product.uom_name,
+                image: product.image_url
+              },
+            ],
+          });
+        }
+      },
+
+      removeFromCart: (productId) => {
+        set({ items: get().items.filter((i) => i.id !== productId) });
+      },
+
+      updateQuantity: (productId, quantity) => {
+        if (quantity <= 0) {
+          get().removeFromCart(productId);
+          return;
+        }
+        set({
+          items: get().items.map((i) =>
+            i.id === productId ? { ...i, quantity } : i
+          ),
+        });
+      },
+
+      clearCart: () => set({ items: [] }),
+
+      total: () => {
+        return get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      },
+    }),
+    {
+      name: 'pos-cart-storage', // Lưu vào localStorage để F5 không mất
     }
-    // Nếu chưa có thì thêm mới
-    return { cart: [...state.cart, { ...product, quantity: 1 }] };
-  }),
-
-  removeFromCart: (productId) => set((state) => ({
-    cart: state.cart.filter((item) => item.id !== productId),
-  })),
-
-  updateQuantity: (productId, quantity) => set((state) => ({
-    cart: state.cart.map((item) => 
-      item.id === productId ? { ...item, quantity: Math.max(1, quantity) } : item
-    ),
-  })),
-
-  clearCart: () => set({ cart: [] }),
-
-  totalAmount: () => {
-    const { cart } = get();
-    return cart.reduce((total, item) => total + item.price * item.quantity, 0);
-  },
-}));
+  )
+);

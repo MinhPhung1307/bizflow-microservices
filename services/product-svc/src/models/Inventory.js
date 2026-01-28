@@ -3,30 +3,31 @@ const db = require('../config/db');
 
 const Inventory = db.define('Inventory', {
     id: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID,
+        defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
-        autoIncrement: true
     },
     product_id: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    quantity: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.UUID, 
         allowNull: false,
+        references: {
+            model: 'product', 
+            key: 'id'
+        }
+    },
+    stock: {
+        type: DataTypes.INTEGER,
         defaultValue: 0
     },
-    min_stock_level: {
-        type: DataTypes.INTEGER,
-        defaultValue: 10
-    },
-    location: {
-        type: DataTypes.STRING,
-        allowNull: true
+    average_cost: {
+        type: DataTypes.DECIMAL(15, 2),
+        defaultValue: 0
     }
 }, {
-    tableName: 'inventories',
-    timestamps: true
+    tableName: 'inventory',    
+    freezeTableName: true,    
+    timestamps: true,
+    underscored: true,
 });
 
 module.exports = Inventory;

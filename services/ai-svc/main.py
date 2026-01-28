@@ -1,22 +1,45 @@
 import os
 import json
-import re
 import uvicorn
 import requests
 from typing import List, Optional
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File
 from pydantic import BaseModel
 from dotenv import load_dotenv
 
 # 1. Cấu hình & Load Env
 load_dotenv()
-API_KEY = os.getenv("GOOGLE_API_KEY")
-GENERATIVE_MODEL_NAME = "gemini-1.5-flash"
+# Cắt bỏ khoảng trắng và ký tự lạ (quan trọng)
+API_KEY = os.getenv("GOOGLE_API_KEY", "").strip()
+
+# Danh sách model sẽ thử lần lượt (Ưu tiên Flash -> Pro 1.5 -> Pro 1.0)
+MODELS_TO_TRY = ["gemini-2.5-flash" ,"gemini-1.5-flash", "gemini-1.5-pro", "gemini-1.0-pro"]
 
 app = FastAPI(title="BizFlow AI Service (Standalone)")
 
+# --- HÀM DEBUG: KIỂM TRA MODEL KHẢ DỤNG ---
+def check_available_models():
+    if not API_KEY:
+        print("❌ [Startup] Missing GOOGLE_API_KEY")
+        return
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models?key={API_KEY}"
+    try:
+        response = requests.get(url, timeout=10)
+        if response.status_code == 200:
+            models = response.json().get('models', [])
+            names = [m['name'].replace('models/', '') for m in models if 'generateContent' in m['supportedGenerationMethods']]
+            print("\n✅ [Startup] Các model khả dụng cho Key của bạn:")
+            print(f"   {', '.join(names)}\n")
+        else:
+            print(f"⚠️ [Startup] Không thể lấy danh sách model: {response.status_code} - {response.text}")
+    except Exception as e:
+        print(f"❌ [Startup] Lỗi kết nối kiểm tra model: {e}")
+
+# Chạy kiểm tra ngay khi khởi động file
+check_available_models()
+
 # --- DEFINITIONS (MODELS) ---
-# Định nghĩa Model ngay tại đây để tránh lỗi import "ModuleNotFoundError"
 class ProductItem(BaseModel):
     id: str
     original_name: str
@@ -31,33 +54,24 @@ class NaturalLanguageOrderRequest(BaseModel):
     owner_id: str
     message: str
 
-class OrderItemResponse(BaseModel):
-    product_name: str
-    quantity: float
-    unit: str
-
 class DraftOrderResponse(BaseModel):
     customer_name: Optional[str] = None
-    items: List[OrderItemResponse]
+    items: List[dict]
     is_debt: bool = False
     original_message: str
 
 # --- MOCK RAG SERVICE ---
-# Tạm thời dùng Mock để service chạy được ngay.
-# Sau này bạn có thể tách ra file riêng khi đã quen cấu trúc.
 class SimpleRAG:
     def __init__(self):
-        self.products = {} # In-memory storage
+        self.products = {} 
 
     def sync_products(self, owner_id, products):
         self.products[owner_id] = products
         print(f"✅ Synced {len(products)} products for owner {owner_id}")
 
     def search_products(self, owner_id, query):
-        # Tìm kiếm đơn giản (Exact match hoặc contains)
         if owner_id not in self.products:
             return []
-        # Logic giả lập: Trả về tất cả sản phẩm để Gemini tự lọc (cho demo)
         return self.products[owner_id]
 
 rag_service = SimpleRAG()
@@ -68,22 +82,41 @@ def call_gemini_api(prompt_text: str, image_data: bytes = None, mime_type: str =
         print("❌ Missing GOOGLE_API_KEY")
         return None
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GENERATIVE_MODEL_NAME}:generateContent?key={API_KEY}"
     headers = {"Content-Type": "application/json"}
-    
     parts = [{"text": prompt_text}]
+    
     if image_data and mime_type:
         import base64
         b64_data = base64.b64encode(image_data).decode('utf-8')
         parts.append({"inline_data": {"mime_type": mime_type, "data": b64_data}})
 
-    try:
-        response = requests.post(url, headers=headers, json={"contents": [{"parts": parts}]}, timeout=30)
-        response.raise_for_status()
-        return response.json()['candidates'][0]['content']['parts'][0]['text']
-    except Exception as e:
-        print(f"❌ Gemini API Error: {e}")
-        return None
+    # Thử lần lượt các model trong danh sách
+    for model in MODELS_TO_TRY:
+        try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+            params = {"key": API_KEY}
+            
+            # print(f"Trying model: {model}...") # Uncomment để debug nếu cần
+            
+            response = requests.post(
+                url, 
+                params=params, 
+                headers=headers, 
+                json={"contents": [{"parts": parts}]}, 
+                timeout=30
+            )
+            
+            if response.status_code == 200:
+                return response.json()['candidates'][0]['content']['parts'][0]['text']
+            else:
+                # Chỉ in lỗi nếu là lỗi 404 (Model not found) hoặc lỗi khác
+                print(f"⚠️ Model {model} failed ({response.status_code}): {response.text}")
+
+        except Exception as e:
+            print(f"❌ Error with {model}: {e}")
+    
+    print("❌ Tất cả các model đều thất bại.")
+    return None
 
 # --- API ENDPOINTS ---
 
@@ -99,30 +132,29 @@ async def sync_products(request: ProductSyncRequest):
 
 @app.post("/api/parse-order", response_model=DraftOrderResponse)
 async def parse_order(request: NaturalLanguageOrderRequest):
-    # 1. Lấy context sản phẩm từ bộ nhớ
+    # 1. Lấy context
     products = rag_service.search_products(request.owner_id, request.message)
-    product_context = "\n".join([f"- {p['original_name']} (Giá: {p['price']}, Đơn vị: {p['unit']})" for p in products])
+    product_context = "\n".join([f"- {p['original_name']} (Giá: {p['price']}, Đơn vị: {p['unit']})" for p in products[:50]])
     
-    # 2. Tạo Prompt
+    # 2. Prompt
     prompt = f"""
-    Bạn là AI tạo đơn hàng. 
-    Dữ liệu sản phẩm có sẵn:
+    Bạn là nhân viên bán hàng. Dữ liệu sản phẩm:
     {product_context}
     
-    Yêu cầu của khách: "{request.message}"
+    Yêu cầu: "{request.message}"
     
-    Hãy trả về JSON duy nhất (không markdown) theo mẫu:
+    Trả về JSON duy nhất (không markdown):
     {{
         "customer_name": "Tên khách hoặc null",
-        "items": [{{"product_name": "Tên sp", "quantity": số lượng, "unit": "đơn vị"}}],
-        "is_debt": true/false (nếu khách nói ghi nợ/chưa trả)
+        "items": [{{"product_name": "Tên sp khớp nhất", "quantity": số lượng, "unit": "đơn vị"}}],
+        "is_debt": true/false
     }}
     """
 
     # 3. Gọi AI
     ai_text = call_gemini_api(prompt)
     if not ai_text:
-        return DraftOrderResponse(items=[], is_debt=False, original_message=request.message + " (Lỗi AI)")
+        return DraftOrderResponse(items=[], is_debt=False, original_message=request.message + " (Lỗi kết nối AI)")
 
     # 4. Parse JSON
     try:
@@ -133,7 +165,7 @@ async def parse_order(request: NaturalLanguageOrderRequest):
         data['original_message'] = request.message
         return DraftOrderResponse(**data)
     except Exception as e:
-        print(f"❌ Parse JSON Error: {e} | Raw: {ai_text}")
+        print(f"❌ Parse JSON Error: {e}")
         return DraftOrderResponse(items=[], is_debt=False, original_message=request.message)
 
 @app.post("/api/orders/ai/transcribe")

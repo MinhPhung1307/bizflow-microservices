@@ -23,7 +23,7 @@ export const createCustomerTable = async () => {
                 amount DECIMAL(19, 2) NOT NULL,
                 type VARCHAR(20) NOT NULL,
                 description TEXT,
-                transaction_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE
             );
         `;

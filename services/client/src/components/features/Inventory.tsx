@@ -111,7 +111,7 @@ export const InventoryManager = () => {
         queryKey: ['all-uoms'],
         queryFn: ownerService.getAllUoms,
     });
-    const globalUoms = globalUomsData || EMPTY_ARRAY;
+    const globalUoms = Array.isArray(globalUomsData) ? globalUomsData : EMPTY_ARRAY;
 
     // Lấy toàn bộ đơn vị của cửa hàng ngay từ đầu
     const { data: storeUomsData = [] } = useQuery({
@@ -135,7 +135,11 @@ export const InventoryManager = () => {
     const activeUomMapping = useMemo(() => {
         const newMapping = { ...UOM_GROUP_MAPPING };
 
-        globalUoms.forEach((uom: any) => {
+        // FIX: Đảm bảo biến là Array trước khi loop
+        const safeGlobalUoms = Array.isArray(globalUoms) ? globalUoms : [];
+        const safeStoreUoms = Array.isArray(storeUoms) ? storeUoms : [];
+
+        safeGlobalUoms.forEach((uom: any) => {
             if (uom?.uom_name && uom?.base_unit) {
                 newMapping[uom.uom_name] = {
                     base: uom.base_unit,
@@ -144,7 +148,7 @@ export const InventoryManager = () => {
             }
         });
 
-        storeUoms.forEach((uom: any) => {
+        safeStoreUoms.forEach((uom: any) => {
             if (uom?.uom_name) {
                 newMapping[uom.uom_name] = {
                     base: uom.base_unit,

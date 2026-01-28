@@ -1,11 +1,8 @@
-// src/middleware/authMiddleware.js
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-dotenv.config();
-
-export const verifyToken = (req, res, next) => {
-    // 1. Lấy token từ Header: "Authorization: Bearer <token>"
+const verifyToken = (req, res, next) => {
+    // 1. Lấy token từ Header
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
@@ -14,15 +11,23 @@ export const verifyToken = (req, res, next) => {
     }
 
     try {
-        // 2. Xác thực token bằng Secret Key (Dùng chung với Identity Service)
         const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
         
-        // 3. Lưu thông tin user vào request để Controller dùng
-        req.user = decoded; 
-        // req.user sẽ có dạng: { userId: '...', role: 'OWNER', ... }
+        // --- LOG DEBUG ---
+        console.log("👉 [DEBUG Middleware] Decoded Token:", decoded);
+
+        // 2. Chuẩn hóa user object (Đảm bảo có cả id và userId để Controller nào cũng dùng được)
+        req.user = {
+            id: decoded.userId || decoded.id, // Ưu tiên userId, fallback sang id
+            userId: decoded.userId || decoded.id,
+            role: decoded.role
+        };
         
         next();
     } catch (error) {
-        return res.status(403).json({ message: 'Token không hợp lệ hoặc đã hết hạn.' });
+        console.error("Auth Error:", error.message);
+        return res.status(403).json({ message: 'Token không hợp lệ.' });
     }
 };
+
+module.exports = { verifyToken };
