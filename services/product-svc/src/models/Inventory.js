@@ -1,33 +1,13 @@
-const { DataTypes } = require('sequelize');
-const db = require('../config/db');
-
-const Inventory = db.define('Inventory', {
-    id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-    },
-    product_id: {
-        type: DataTypes.UUID, 
-        allowNull: false,
-        references: {
-            model: 'product', 
-            key: 'id'
-        }
-    },
-    stock: {
-        type: DataTypes.INTEGER,
-        defaultValue: 0
-    },
-    average_cost: {
-        type: DataTypes.DECIMAL(15, 2),
-        defaultValue: 0
-    }
-}, {
-    tableName: 'inventory',    
-    freezeTableName: true,    
-    timestamps: true,
-    underscored: true,
-});
-
-module.exports = Inventory;
+export const InventoryModel = `
+  CREATE TABLE IF NOT EXISTS inventory (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID UNIQUE NOT NULL,
+      stock INT NOT NULL CHECK (stock >= 0),
+      average_cost DECIMAL(15, 2) DEFAULT 0,
+      
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      
+      FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+  );
+`;

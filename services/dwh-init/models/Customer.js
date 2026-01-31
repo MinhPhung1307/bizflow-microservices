@@ -8,7 +8,7 @@ export const createCustomerTable = async () => {
             CREATE TABLE IF NOT EXISTS customer (
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 owner_id UUID NOT NULL, -- Hộ kinh doanh sở hữu
-                name VARCHAR(150) NOT NULL,
+                full_name VARCHAR(150) NOT NULL,
                 phone_number VARCHAR(20) UNIQUE,
                 address VARCHAR(255),
                 total_outstanding_debt DECIMAL(19, 2) NOT NULL DEFAULT 0.00,

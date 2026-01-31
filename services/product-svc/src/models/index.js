@@ -1,58 +1,25 @@
-const sequelize = require('../config/db');
-const Product = require('./Product');
-const Inventory = require('./Inventory');
-const Uom = require('./Uom');
-const ProductUom = require('./ProductUom');
-const Category = require('./Category');
-const StockImport = require('./StockImport');
+import pool from '../config/db.js';
+import { ProductModel } from './Product.js';
+import { InventoryModel } from './Inventory.js';
+import { UomModel } from './Uom.js';
+import { ProductUomModel } from './ProductUom.js';
+import { StockImportModel } from './StockImport.js';
 
-// --- ĐỊNH NGHĨA QUAN HỆ (ASSOCIATIONS) ---
+export const initTables = async () => {
+  try {
 
-// 1. Category - Product
-Category.hasMany(Product, { foreignKey: 'category_id' });
-Product.belongsTo(Category, { foreignKey: 'category_id' });
+    console.log("Starting DB Initialization...");
 
-// 2. Product - Inventory
-Product.hasOne(Inventory, { foreignKey: 'product_id' });
-Inventory.belongsTo(Product, { foreignKey: 'product_id' });
+    await pool.query(ProductModel);
+    await pool.query(InventoryModel);
+    await pool.query(UomModel);
+    await pool.query(ProductUomModel);
+    await pool.query(StockImportModel);
 
-// 3. Product - Uom
-Product.belongsToMany(Uom, { through: ProductUom, foreignKey: 'product_id' });
-Uom.belongsToMany(Product, { through: ProductUom, foreignKey: 'uom_id' });
-
-// Quan hệ trực tiếp với bảng trung gian (ProductUom)
-Product.hasMany(ProductUom, { foreignKey: 'product_id' });
-ProductUom.belongsTo(Product, { foreignKey: 'product_id' });
-
-Uom.hasMany(ProductUom, { foreignKey: 'uom_id' });
-ProductUom.belongsTo(Uom, { foreignKey: 'uom_id' });
-
-
-// 5. Product - StockImport
-Product.hasMany(StockImport, { foreignKey: 'product_id' });
-StockImport.belongsTo(Product, { foreignKey: 'product_id' });
-
-// --- HÀM KHỞI TẠO DATABASE ---
-const initDB = async () => {
-    try {
-        await sequelize.authenticate();
-        console.log('✅ Database connection established.');
-        
-        // Sử dụng alter: true để cập nhật bảng nếu có thay đổi
-        await sequelize.sync({ alter: true }); 
-        console.log('✅ Database synchronized.');
-    } catch (error) {
-        console.error('❌ Unable to connect to the database:', error);
-    }
-};
-
-module.exports = {
-    sequelize,
-    initDB,
-    Product,
-    Inventory,
-    Uom,
-    ProductUom,
-    Category,
-    StockImport
+    console.log("All Product DB Tables Initialized Successfully.");
+  } catch (err) {
+    console.error("Critical Error during Product DB Initialization:", err);
+    // Trong môi trường production, bạn có thể muốn dừng app nếu lỗi DB
+    process.exit(1); 
+  }
 };

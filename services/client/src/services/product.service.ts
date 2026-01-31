@@ -32,7 +32,7 @@ export const productService = {
           
           name: safeString(item.name),
           code: safeString(item.code || '---'),
-          uom_name: safeString(item.unit || item.uom_name || 'Cái'),
+          unit: safeString(item.unit || item.uom_name || 'Cái'),
           
           price_sales: Number(item.price || item.price_sales || 0),
           stock_quantity: Number(item.stock || item.stock_quantity || 0),

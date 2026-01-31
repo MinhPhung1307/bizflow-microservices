@@ -9,11 +9,10 @@ export const createDebtTransactionTable = async () => {
                 id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 customer_id UUID NOT NULL,
                 order_id UUID, -- NULL nếu là giao dịch thanh toán nợ không kèm đơn hàng mới
-                transaction_type VARCHAR(20) NOT NULL, -- DEBT_INC (phát sinh nợ), PAYMENT (thanh toán nợ)
+                type VARCHAR(20) NOT NULL, -- DEBT_INC (phát sinh nợ), PAYMENT (thanh toán nợ)
                 amount DECIMAL(19, 2) NOT NULL,
-                note TEXT,
+                description TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                recorded_by_user_id UUID NOT NULL,
                 
                 FOREIGN KEY (customer_id) REFERENCES customer(id) ON DELETE CASCADE,
                 FOREIGN KEY (recorded_by_user_id) REFERENCES users(id) ON DELETE CASCADE

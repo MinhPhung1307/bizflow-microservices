@@ -1,24 +1,43 @@
-const { Sequelize } = require('sequelize');
-require('dotenv').config();
+import pkg from 'pg';
+import dotenv from 'dotenv';
 
-// Khởi tạo kết nối Sequelize
-const sequelize = new Sequelize(
-    process.env.DB_NAME,
-    process.env.DB_USER,
-    process.env.DB_PASSWORD,
-    {
-        host: process.env.DB_HOST,
-        port: process.env.DB_PORT || 5432, // Mặc định 5432 cho Postgres
-        dialect: process.env.DB_DIALECT || 'postgres', // Quan trọng: phải là postgres hoặc mysql
-        logging: false, // Tắt log query cho gọn console
-        dialectOptions: process.env.DB_SSL === 'true' ? {
-            ssl: {
-                require: true,
-                rejectUnauthorized: false // Cần thiết cho Neon Tech
-            }
-        } : {}
+dotenv.config();
+
+const { Pool } = pkg;
+
+class Database {
+    static instance;
+
+    constructor() {
+        // Kiểm tra nếu thực thể (instance) đã tồn tại thì trả về thực thể đó
+        if (Database.instance) {
+            return Database.instance;
+        }
+
+        // Khởi tạo Pool
+        this.pool = new Pool({
+            connectionString: process.env.DATABASE_URL,
+            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false} : false,
+        });
+
+        // Lắng nghe lỗi kết nối để tránh sập ứng dụng đột ngột
+        this.pool.on('error', (err) => {
+            console.error('Lỗi PostgreSQL Pool không mong muốn:', err.message);
+        });
+
+        // Gán thực thể vừa tạo vào biến static
+        Database.instance = this;
     }
-);
 
-// Quan trọng: Export trực tiếp biến sequelize instance
-module.exports = sequelize;
+    query(text, params) {
+        return this.pool.query(text, params);
+    }
+
+    connect() {
+        return this.pool.connect();
+    }
+}
+
+// Khởi tạo thực thể duy nhất và xuất ra ngoài
+const dbInstance = new Database();
+export default dbInstance;

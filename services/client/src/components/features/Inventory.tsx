@@ -203,34 +203,45 @@ export const InventoryManager = () => {
 
         // 2. Nếu ô nhập trống, reset về trạng thái sản phẩm mới
         if (!searchCode) {
-            // FIX: Chỉ reset nếu đang KHÔNG phải là trạng thái trống (đang có ID hoặc tên)
-            if (!isNewProduct || formData.id !== undefined) {
+            setIsNewProduct(true);
+            setFormData(prev => ({
+                ...prev,
+                id: undefined,
+                name: '',
+                category: '',
+                price: 0,
+                stock: 0,
+            }));
+            return;
+        }
+
+        const foundProduct = products.find(
+            (p: any) => p.code === searchCode
+        );
+
+        // 3. Chỉ tìm kiếm khi danh sách sản phẩm đã tải xong
+        if (foundProduct) {
+            if (formData.id !== foundProduct.id) {
+                setIsNewProduct(false);
+                setFormData(prev => ({
+                    ...prev,
+                    id: foundProduct.id,
+                    name: foundProduct.name,
+                    category: foundProduct.category,
+                    unit: foundProduct.unit || 'Cái',
+                    price: Number(foundProduct.price || 0),
+                    stock: Number(foundProduct.stock || 0),
+                }));
+            }
+        } else {
+            if (!isNewProduct || formData.id) {
                 setIsNewProduct(true);
                 setFormData(prev => ({
                     ...prev,
                     id: undefined,
                     name: '',
                     category: '',
-                    price: 0,
-                    stock: 0
-                }));
-            }
-            return;
-        }
-
-        // 3. Chỉ tìm kiếm khi danh sách sản phẩm đã tải xong
-        if (products.length > 0) {
-            const foundProduct = products.find((p: any) => p.code === searchCode);
-            if (foundProduct && formData.id !== foundProduct.id) {
-                setIsNewProduct(false);
-                setFormData(prev => ({
-                    ...prev,
-                    id: foundProduct.id, 
-                    name: foundProduct.name,
-                    category: foundProduct.category,
-                    unit: foundProduct.unit || 'Cái',
-                    price: Number(foundProduct.price || 0),
-                    stock: Number(foundProduct.stock || 0)
+                    stock: 0,
                 }));
             }
         }
@@ -288,6 +299,7 @@ export const InventoryManager = () => {
     const openEditModal = (product: Product) => {
         setEditingProduct(product);
         setFormData(product);
+        setIsNewProduct(false);
         setIsImportModalOpen(true);
     };
 

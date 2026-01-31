@@ -1,54 +1,16 @@
-const { DataTypes } = require('sequelize');
-const db = require('../config/db');
-
-const StockImport = db.define('StockImport', {
-    id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-    },
-    owner_id: {
-        type: DataTypes.UUID,
-        allowNull: false
-    },
-    product_id: {
-        type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'product',
-            key: 'id'
-        }
-    },
-    quantity: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
-    total_cost: {
-        type: DataTypes.DECIMAL(15, 2),
-        defaultValue: 0
-    },
-    import_price: {
-        type: DataTypes.DECIMAL(15, 2),
-        defaultValue: 0
-    },
-    supplier: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    uom_name: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    imported_by_user_id: {
-        type: DataTypes.UUID,
-        allowNull: true
-    }
-}, {
-    tableName: 'stock_import',  // Tên bảng số ít
-    freezeTableName: true,
-    timestamps: true,
-    updatedAt: false,           // Schema bạn gửi chỉ có created_at, không có updated_at
-    underscored: true,
-});
-
-module.exports = StockImport;
+export const StockImportModel = `
+  CREATE TABLE IF NOT EXISTS stock_import (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    owner_id UUID NOT NULL,
+    product_id UUID NOT NULL,
+    quantity INT NOT NULL,
+    total_cost DECIMAL(19, 2) NOT NULL,
+    import_price DECIMAL(15, 2) NOT NULL,
+    supplier VARCHAR(255),
+    uom_name VARCHAR(50),
+    imported_by_user_id UUID NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
+  );
+`;
