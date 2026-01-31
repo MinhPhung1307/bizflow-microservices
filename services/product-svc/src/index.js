@@ -1,46 +1,34 @@
-const express = require('express');
+import express from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import dotenv from 'dotenv';
+import { initTables } from './models/index.js';
+import productRoutes from './routes/productRoutes.js';
+import { connectRabbitMQ } from './config/rabbitmq.js';
+
+dotenv.config();
+
 const app = express();
-require('dotenv').config();
-const cors = require('cors'); // Thêm cors
-
-const { initDB } = require('./models'); 
-const productRoutes = require('./routes/productRoutes');
-// Import consumer vừa tạo
-const consumeOrderCreated = require('./consumers/InventoryConsumer');
-
 const PORT = process.env.PORT || 4002;
 
+// Middleware
+app.use(cookieParser());
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+initTables();
 
 // Routes
-app.use('/api/products', productRoutes); 
 app.use('/', productRoutes);
 
-const startServer = async () => {
-    try {
-        // 1. Kết nối DB
-        await initDB();
+// Health check cho Docker/K8s
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'OK', service: 'product-svc' });
+});
 
-        // 2. Kết nối RabbitMQ (Bọc try-catch để không sập app nếu chưa cài RabbitMQ)
-        try {
-            if (process.env.RABBITMQ_URL) {
-                await consumeOrderCreated();
-            } else {
-                console.log("⚠️ RABBITMQ_URL not found in .env, skipping consumer.");
-            }
-        } catch (mqError) {
-            console.error('⚠️ RabbitMQ connection failed:', mqError.message);
-        }
-
-        // 3. Start Server
-        app.listen(PORT, () => {
-            console.log(`🚀 Product Service running on port ${PORT}`);
-        });
-
-    } catch (error) {
-        console.error('❌ Failed to start server:', error);
-    }
-};
-
-startServer();
+// Start server
+app.listen(PORT, async () => {
+  console.log(` Product Service running on port ${PORT}`);
+  await connectRabbitMQ();
+});

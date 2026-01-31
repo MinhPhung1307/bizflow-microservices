@@ -1,52 +1,17 @@
-const { DataTypes } = require('sequelize');
-const db = require('../config/db');
+export const ProductModel = `
+  CREATE TABLE IF NOT EXISTS product (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      owner_id UUID NOT NULL,
+      code VARCHAR(50), -- Mã sản phẩm hoặc Barcode
+      name VARCHAR(255) NOT NULL,
+      category VARCHAR(100),
+      price DECIMAL(19, 2) NOT NULL CHECK (price >= 0),
+      stock INT NOT NULL CHECK (stock >= 0),
+      unit VARCHAR(50) NOT NULL,
+      images JSONB DEFAULT '[]'::JSONB, -- Mảng lưu trữ các URL hình ảnh sản phẩm
+      is_active BOOLEAN NOT NULL DEFAULT TRUE, -- Sản phẩm có đang hoạt động hay không
 
-const Product = db.define('Product', {
-    id: {
-        type: DataTypes.UUID,
-        defaultValue: DataTypes.UUIDV4,
-        primaryKey: true,
-    },
-    owner_id: {
-        type: DataTypes.UUID, 
-        allowNull: false,
-    },
-    code: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    name: {
-        type: DataTypes.STRING,
-        allowNull: false
-    },
-    category: {
-        type: DataTypes.STRING, 
-        allowNull: true
-    },
-    price: {
-        type: DataTypes.DECIMAL(10, 2), 
-        defaultValue: 0
-    },
-    stock: {
-        type: DataTypes.INTEGER, 
-        defaultValue: 0
-    },
-    images: {
-        type: DataTypes.JSONB, 
-        defaultValue: []
-    },
-    is_active: {
-        type: DataTypes.BOOLEAN,
-        defaultValue: true
-    },
-    unit: {
-        type: DataTypes.STRING, 
-        allowNull: true
-    }
-}, {
-    tableName: 'product',      
-    timestamps: true,          
-    underscored: true,        
-});
-
-module.exports = Product;
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  );
+`;

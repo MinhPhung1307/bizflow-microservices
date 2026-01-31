@@ -1,408 +1,384 @@
-const { Product, Inventory, Category, StockImport, StockTransaction, Uom, sequelize, ProductUom } = require('../models');
-const { Op } = require('sequelize');
-const xlsx = require('xlsx');
-const fs = require('fs');
+import db from '../config/db.js';
+import { getChannel } from '../config/rabbitmq.js';
 
-// Nếu bạn muốn dùng RabbitMQ để bắn log (Tùy chọn, nếu chưa cấu hình thì có thể comment lại)
-// const { getChannel } = require('../config/rabbitmq'); 
+export const getAllProducts = async (req, res) => {
+  try {
+    const owner_id = req.user.id; 
+    
+    const result = await db.query(
+      'SELECT * FROM product WHERE owner_id = $1 ORDER BY created_at DESC',
+      [owner_id]
+    );
+    
+    res.status(200).json({
+      success: true,
+      count: result.rows.length,
+      data: result.rows
+    });
+  } catch (error) {
+    console.error("Get All Products Error:", error);
+    res.status(500).json({ success: false, message: 'Lỗi Server' });
+  }
+};
 
-const ProductController = {
+export const getProductById = async (req, res) => {
+  const { id } = req.params;
+  const owner_id = req.user.id; // SỬA: id -> userId
 
-    getProductUoms: async (req, res) => {
-        try {
-            const { id } = req.params;
-            
-            // Tìm trong bảng trung gian ProductUom
-            const uoms = await ProductUom.findAll({
-                where: { product_id: id },
-                include: [
-                    { 
-                        model: Uom,
-                        attributes: ['uom_name', 'id'] // Lấy tên đơn vị để hiển thị
-                    }
-                ]
-            });
+  try {
+    const result = await db.query('SELECT * FROM product WHERE id = $1 AND owner_id = $2', [id, owner_id]);
 
-            // Flatten dữ liệu trả về cho tiện Frontend sử dụng (Optional, nhưng tốt cho logic hiện tại của bạn)
-            const data = uoms.map(item => ({
-                id: item.id,
-                product_id: item.product_id,
-                uom_id: item.uom_id,
-                uom_name: item.Uom ? item.Uom.uom_name : '', // Lấy tên từ bảng Uom
-                conversion_factor: item.conversion_factor,
-                is_base_unit: item.is_base_unit,
-                selling_price: item.selling_price
-            }));
+    if (result.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+    }
 
-            res.json({ success: true, data: data });
-        } catch (error) {
-            console.error("Get Product Uoms Error:", error);
-            res.status(500).json({ success: false, message: error.message });
-        }
-    },
+    res.status(200).json({
+      success: true,
+      data: result.rows[0]
+    });
+  } catch (error) {
+    console.error("Get Product By ID Error:", error);
+    res.status(500).json({ success: false, message: 'Lỗi Server' });
+  }
+};
 
-    createUom: async (req, res) => {
-        try {
-            const { uom_name } = req.body;
-            const owner_id = req.user ? (req.user.userId || req.user.id) : null;
-            
-            if (!uom_name || !owner_id) {
-                return res.status(400).json({ success: false, message: "Thiếu tên đơn vị hoặc thông tin người dùng" });
-            }
+export const createProduct = async (req, res) => {
+    try {
+        const { name, price, stock, unit, category_id, description, code, images } = req.body;
+        const owner_id = req.user.id;
 
-            const newUom = await Uom.create({
-                uom_name,
-                owner_id
-            });
+        // 1. Bắt đầu Transaction
+        await db.query('BEGIN');
 
-            res.status(201).json({ success: true, data: newUom });
-        } catch (error) {
-            console.error("Create UOM Error:", error);
-            res.status(500).json({ success: false, message: error.message });
-        }
-    },
+        // 2. Thêm vào bảng Product
+        const productQuery = `
+            INSERT INTO product (name, price, stock, unit, category_id, description, images, owner_id, code) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) 
+            RETURNING *
+        `;
+        const values = [name, price, stock || 0, unit, category_id, description, images, owner_id, code];
+        const newProductRes = await db.query(productQuery, values);
+        const newProduct = newProductRes.rows[0];
 
-    getAllUoms: async (req, res) => {
-        try {
-            const whereClause = {};
-            // Lọc theo owner nếu có
-            if (req.user && (req.user.userId || req.user.id)) {
-                whereClause.owner_id = req.user.userId || req.user.id;
-            }
+        // 3. TỰ ĐỘNG THÊM VÀO BẢNG INVENTORY
+        // Nếu người dùng nhập stock ban đầu thì dùng số đó, nếu không thì để 0
+        const initialStock = stock ? parseInt(stock) : 0;
+        
+        const inventoryQuery = `
+            INSERT INTO inventory (product_id, stock, last_updated_at)
+            VALUES ($1, $2, NOW())
+        `;
+        await db.query(inventoryQuery, [newProduct.id, initialStock]);
 
-            const uoms = await Uom.findAll({
-                where: whereClause,
-                order: [['uom_name', 'ASC']]
-            });
-            
-            res.json({ success: true, data: uoms });
-        } catch (error) {
-            console.error("Get UOMs Error:", error);
-            res.status(500).json({ success: false, message: "Lỗi lấy danh sách đơn vị tính" });
-        }
-    },
+        // 4. Lưu thành công -> Commit Transaction
+        await db.query('COMMIT');
 
-    // 1. Lấy danh sách sản phẩm (Hỗ trợ phân trang & Owner)
-    getAllProducts: async (req, res) => {
-        try {
-            // Lấy thêm tham số 'search' từ query
-            const { page = 1, limit = 10, search } = req.query;
-            const offset = (page - 1) * limit;
-            
-            const whereClause = {};
-            
-            // 1. Filter theo Owner
-            if (req.user && (req.user.userId || req.user.id)) {
-                whereClause.owner_id = req.user.userId || req.user.id;
-            }
+        // 5. Đồng bộ sang AI (RAG)
+        // Lưu ý: Gọi sau khi commit để đảm bảo dữ liệu đã an toàn trong DB
+        // AIService.syncProductsToAI(owner_id, [newProduct]);
 
-            // 2. Filter theo Search (Tên hoặc Mã)
-            if (search) {
-                whereClause[Op.or] = [
-                    { name: { [Op.iLike]: `%${search}%` } },
-                    { code: { [Op.iLike]: `%${search}%` } }
-                ];
-            }
+        return res.status(201).json({ 
+            success: true, 
+            message: "Tạo sản phẩm và kho hàng thành công",
+            data: newProduct 
+        });
 
-            const { count, rows } = await Product.findAndCountAll({
-                where: whereClause,
-                include: [
-                    { model: Category, attributes: ['id', 'name'] },
-                    // Nếu Model Inventory đã bỏ (gộp vào Product) thì bỏ dòng dưới đi
-                    // { model: Inventory, attributes: ['quantity'] } 
-                ],
-                limit: parseInt(limit),
-                offset: parseInt(offset),
-                order: [['created_at', 'DESC']] // Chú ý: dùng created_at (snake_case) theo DB mới
-            });
-
-            res.json({
-                success: true,
-                total: count,
-                totalPages: Math.ceil(count / limit),
-                currentPage: parseInt(page),
-                products: rows
-            });
-        } catch (error) {
-            console.error("GetAllProducts Error:", error);
-            res.status(500).json({ success: false, message: error.message });
-        }
-    },
-
-    // 2. Tìm kiếm nâng cao
-    searchProducts: async (req, res) => {
-        try {
-            const { q, category_id, min_price, max_price } = req.query;
-            const whereClause = {};
-
-            // Nếu có owner_id từ token
-            if (req.user && req.user.id) {
-                whereClause.owner_id = req.user.id;
-            }
-
-            if (q) {
-                whereClause[Op.or] = [
-                    { name: { [Op.iLike]: `%${q}%` } }, // iLike cho Postgres (không phân biệt hoa thường)
-                    { description: { [Op.iLike]: `%${q}%` } }
-                ];
-            }
-
-            if (category_id) whereClause.category_id = category_id;
-
-            if (min_price || max_price) {
-                whereClause.price = {};
-                if (min_price) whereClause.price[Op.gte] = min_price;
-                if (max_price) whereClause.price[Op.lte] = max_price;
-            }
-
-            const products = await Product.findAll({
-                where: whereClause,
-                include: [
-                    { model: Category, attributes: ['name'] },
-                    { model: Inventory, attributes: ['quantity'] }
-                ]
-            });
-
-            res.json({ success: true, data: products });
-        } catch (error) {
-            console.error("Search Error:", error);
-            res.status(500).json({ success: false, message: 'Lỗi tìm kiếm sản phẩm' });
-        }
-    },
-
-    // 3. Chi tiết sản phẩm
-    getProductById: async (req, res) => {
-        try {
-            const whereClause = { id: req.params.id };
-            if (req.user && req.user.id) {
-                whereClause.owner_id = req.user.id;
-            }
-
-            const product = await Product.findOne({
-                where: whereClause,
-                include: [
-                    { model: Category },
-                    { model: Inventory },
-                    // Lấy 5 giao dịch kho gần nhất để xem lịch sử
-                    { model: StockTransaction, limit: 5, order: [['createdAt', 'DESC']] }
-                ]
-            });
-
-            if (!product) return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
-            res.json({ success: true, data: product });
-        } catch (error) {
-            res.status(500).json({ success: false, message: error.message });
-        }
-    },
-
-    // 4. Tạo sản phẩm mới (Có Transaction)
-    createProduct: async (req, res) => {
-        const t = await sequelize.transaction();
-        try {
-            const { name, price, category_id, description, image_url, initial_stock, code } = req.body;
-            // Lấy owner_id từ token hoặc mặc định là 1 (cho test)
-            const owner_id = (req.user && req.user.id) ? req.user.id : 1; 
-
-            // Tạo Product
-            const newProduct = await Product.create({
-                name,
-                price,
-                category_id,
-                description,
-                image_url,
-                owner_id,
-                // code: code // Nếu model Product có trường code thì bỏ comment này ra
-            }, { transaction: t });
-
-            // Tạo Inventory (Kho)
-            await Inventory.create({
-                product_id: newProduct.id,
-                quantity: initial_stock || 0
-            }, { transaction: t });
-
-            // Nếu có tồn kho ban đầu -> Ghi lịch sử nhập kho
-            if (initial_stock > 0) {
-                await StockTransaction.create({
-                    product_id: newProduct.id,
-                    transaction_type: 'IN',
-                    quantity: initial_stock,
-                    reason: 'Tồn kho ban đầu khi tạo mới'
-                }, { transaction: t });
-            }
-
-            await t.commit();
-            res.status(201).json({ success: true, message: "Tạo sản phẩm thành công", data: newProduct });
-        } catch (error) {
-            await t.rollback();
-            console.error("Create Product Error:", error);
-            res.status(500).json({ success: false, message: error.message });
-        }
-    },
-
-    // 5. Cập nhật sản phẩm
-    updateProduct: async (req, res) => {
-        const t = await sequelize.transaction();
-        try {
-            const { name, price, category_id, description, image_url, stock } = req.body;
-            const productId = req.params.id;
-            
-            // Check sản phẩm có tồn tại không
-            const product = await Product.findByPk(productId);
-            if (!product) {
-                await t.rollback();
-                return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
-            }
-
-            // Update thông tin cơ bản
-            await product.update({
-                name, price, category_id, description, image_url
-            }, { transaction: t });
-
-            // Nếu có gửi lên stock -> Update luôn inventory (Đồng bộ)
-            if (stock !== undefined && stock !== null) {
-                // Tìm inventory
-                let inventory = await Inventory.findOne({ where: { product_id: productId } });
-                
-                if (inventory) {
-                    // Tính chênh lệch để ghi log transaction
-                    const diff = parseInt(stock) - inventory.quantity;
-                    if (diff !== 0) {
-                        inventory.quantity = parseInt(stock);
-                        await inventory.save({ transaction: t });
-                        
-                        // Ghi log điều chỉnh kho
-                        await StockTransaction.create({
-                            product_id: productId,
-                            transaction_type: diff > 0 ? 'IN' : 'OUT',
-                            quantity: Math.abs(diff),
-                            reason: 'Cập nhật thủ công'
-                        }, { transaction: t });
-                    }
-                } else {
-                    // Nếu chưa có inventory thì tạo mới
-                    await Inventory.create({
-                        product_id: productId,
-                        quantity: parseInt(stock)
-                    }, { transaction: t });
-                }
-            }
-
-            await t.commit();
-            res.json({ success: true, message: 'Cập nhật thành công' });
-        } catch (error) {
-            await t.rollback();
-            res.status(500).json({ success: false, message: error.message });
-        }
-    },
-
-    // 6. Xóa sản phẩm (Xóa sạch dữ liệu liên quan)
-    deleteProduct: async (req, res) => {
-        const t = await sequelize.transaction();
-        try {
-            const productId = req.params.id;
-
-            // Xóa Inventory trước
-            await Inventory.destroy({ where: { product_id: productId }, transaction: t });
-            
-            // Xóa Lịch sử nhập/xuất kho
-            await StockTransaction.destroy({ where: { product_id: productId }, transaction: t });
-            
-            // Xóa Lịch sử nhập hàng (nếu có model StockImport)
-            if (StockImport) {
-                await StockImport.destroy({ where: { product_id: productId }, transaction: t });
-            }
-
-            // Cuối cùng xóa Product
-            const deleted = await Product.destroy({ where: { id: productId }, transaction: t });
-
-            if (!deleted) {
-                await t.rollback();
-                return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
-            }
-
-            await t.commit();
-            res.json({ success: true, message: 'Đã xóa sản phẩm và dữ liệu kho liên quan' });
-        } catch (error) {
-            await t.rollback();
-            res.status(500).json({ success: false, message: error.message });
-        }
-    },
-
-    // 7. Import Excel (Tính năng nâng cao)
-    importProducts: async (req, res) => {
-        const t = await sequelize.transaction();
-        try {
-            if (!req.file) return res.status(400).json({ success: false, message: 'Vui lòng upload file Excel' });
-
-            const workbook = xlsx.readFile(req.file.path);
-            const sheetName = workbook.SheetNames[0];
-            const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
-            
-            // Lấy owner_id (mặc định 1 nếu không có auth)
-            const owner_id = (req.user && req.user.id) ? req.user.id : 1;
-            let importedCount = 0;
-
-            for (const row of data) {
-                // Giả định file Excel có cột: Name, Price, Quantity
-                // Tạo Product
-                const product = await Product.create({
-                    name: row.Name || row.name,
-                    price: row.Price || row.price || 0,
-                    category_id: row.CategoryID || null,
-                    owner_id: owner_id
-                }, { transaction: t });
-
-                const quantity = parseInt(row.Quantity || row.quantity || 0);
-
-                // Tạo Inventory
-                await Inventory.create({
-                    product_id: product.id,
-                    quantity: quantity
-                }, { transaction: t });
-
-                // Lưu vào StockImport (Lịch sử nhập hàng)
-                // Model StockImport đã được thêm vào index.js ở các bước trước
-                if (StockImport) {
-                    await StockImport.create({
-                        product_id: product.id,
-                        quantity: quantity,
-                        import_price: row.ImportPrice || row.Price || 0, // Giá nhập
-                        supplier_name: row.Supplier || 'Excel Import'
-                    }, { transaction: t });
-                }
-
-                // Lưu vào StockTransaction (Biến động kho)
-                if (quantity > 0) {
-                    await StockTransaction.create({
-                        product_id: product.id,
-                        transaction_type: 'IN',
-                        quantity: quantity,
-                        reason: 'Import Excel'
-                    }, { transaction: t });
-                }
-
-                importedCount++;
-            }
-
-            await t.commit();
-            
-            // Xóa file tạm
-            if (fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
-            }
-
-            res.json({ success: true, message: 'Import thành công', totalImported: importedCount });
-
-        } catch (error) {
-            await t.rollback();
-            // Xóa file tạm nếu lỗi
-            if (req.file && fs.existsSync(req.file.path)) {
-                fs.unlinkSync(req.file.path);
-            }
-            console.error("Import Error:", error);
-            res.status(500).json({ success: false, message: 'Lỗi import: ' + error.message });
-        }
+    } catch (error) {
+        // 6. Nếu có lỗi -> Rollback (Hủy toàn bộ thay đổi)
+        await db.query('ROLLBACK');
+        console.error("Create Product Error:", error);
+        return res.status(500).json({ success: false, message: error.message });
     }
 };
 
-module.exports = ProductController;
+export const updateProduct = async (req, res) => {
+    try {
+        const { id } = req.params; // Lấy ID sản phẩm
+        const { name, price, stock, unit, category_id, description, code, images } = req.body;
+        const owner_id = req.user.id;
+        const oldProductRes = await db.query('SELECT price, name FROM product WHERE id = $1', [id]);
+        const oldData = oldProductRes.rows[0];
+
+        // 1. Validate cơ bản
+        if (!id) return res.status(400).json({ success: false, message: "Thiếu ID sản phẩm" });
+
+        // 2. Bắt đầu Transaction
+        await db.query('BEGIN');
+
+        // 3. Cập nhật bảng PRODUCT
+        // Lưu ý: Ta vẫn update cột stock ở đây để giữ dữ liệu hiển thị cũ
+        const updateProductQuery = `
+            UPDATE product 
+            SET name = $1, price = $2, stock = $3, unit = $4, category_id = $5, 
+                description = $6, images = $7, code = $8, updated_at = NOW()
+            WHERE id = $9 AND owner_id = $10
+            RETURNING *
+        `;
+        
+        // Chuyển stock về số nguyên, nếu không nhập thì giữ nguyên giá trị cũ (logic này frontend nên gửi đủ)
+        // Ở đây giả định req.body.stock luôn có giá trị mới nhất
+        const stockVal = stock !== undefined ? parseInt(stock) : 0;
+
+        const values = [name, price, stockVal, unit, category_id, description, images, code, id, owner_id];
+        const result = await db.query(updateProductQuery, values);
+
+        if (result.rows.length === 0) {
+            await db.query('ROLLBACK');
+            return res.status(404).json({ success: false, message: "Không tìm thấy sản phẩm hoặc không có quyền sửa" });
+        }
+
+        const updatedProduct = result.rows[0];
+
+        // 4. ĐỒNG BỘ CẬP NHẬT BẢNG INVENTORY
+        // Nếu người dùng có gửi thông tin stock mới, ta cập nhật luôn bảng Inventory
+        if (stock !== undefined) {
+            // Kiểm tra xem đã có dòng inventory chưa
+            const checkInv = await db.query(`SELECT id FROM inventory WHERE product_id = $1`, [id]);
+            
+            if (checkInv.rows.length > 0) {
+                // Update
+                await db.query(`UPDATE inventory SET stock = $1, last_updated_at = NOW() WHERE product_id = $2`, [stockVal, id]);
+            } else {
+                // Insert (phòng hờ dữ liệu cũ chưa có)
+                await db.query(`INSERT INTO inventory (product_id, stock, last_updated_at) VALUES ($1, $2, NOW())`, [id, stockVal]);
+            }
+        }
+
+        // await saveLog(database, {
+        //   user_id: owner_id,
+        //   action: 'UPDATE_PRODUCT',
+        //   entity_type: 'product',
+        //   entity_id: id,
+        //   old_value: oldData,
+        //   new_value: { name, price }
+        // });
+
+        // 5. Commit Transaction
+        await db.query('COMMIT');
+
+        // 6. Sync lại với AI (RAG)
+        // AIService.syncProductsToAI(owner_id, [updatedProduct]);
+
+        return res.status(200).json({ 
+            success: true, 
+            message: "Cập nhật sản phẩm thành công", 
+            data: updatedProduct 
+        });
+
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error("Update Product Error:", error);
+        return res.status(500).json({ success: false, message: "Lỗi Server: " + error.message });
+    }
+};
+
+export const deleteProduct = async (req, res) => {
+  const { id } = req.params;
+  const owner_id = req.user.id; // SỬA: id -> userId
+
+  try {
+    const productRes = await db.query(
+        'SELECT name, price, code FROM product WHERE id = $1 AND owner_id = $2',
+        [id, owner_id]
+    );
+    if (productRes.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy sản phẩm' });
+    }
+    const oldData = productRes.rows[0];
+    await db.query('DELETE FROM product WHERE id = $1 AND owner_id = $2 RETURNING id', [id, owner_id]);
+
+    // await saveLog(database, {
+    //     user_id: owner_id,
+    //     action: 'DELETE_PRODUCT',
+    //     entity_type: 'product',
+    //     entity_id: id,
+    //     old_value: oldData
+    // });
+
+    res.status(200).json({
+      success: true,
+      message: 'Đã xóa sản phẩm'
+    });
+  } catch (error) {
+    console.error("Delete Product Error:", error);
+    res.status(500).json({ success: false, message: 'Lỗi xóa sản phẩm' });
+  }
+};
+
+// Lấy tất cả đơn vị tính (UoM) cho Owner
+export const getAllUoms = async (req, res) => {
+    const userId = req.user.id; 
+
+    try {
+        const query = `
+            SELECT id, owner_id, uom_name
+            FROM uom 
+            WHERE owner_id = $1 OR owner_id IS NULL 
+            ORDER BY 
+                CASE WHEN owner_id IS NULL THEN 0 ELSE 1 END, -- Hiện đơn vị hệ thống lên trước
+                uom_name ASC
+        `;
+        
+        const result = await db.query(query, [userId]);
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error("Error in getAllUoms:", error);
+        res.status(500).json({ message: "Không thể lấy danh sách đơn vị tính" });
+    }
+};
+
+// Lấy danh sách UoM thuộc về cửa hàng của Owner
+export const getStoreUoms = async (req, res) => {
+    const owner_id = req.user.id; // Lấy từ token
+    try {
+        // Lấy tất cả UoM thuộc về các sản phẩm của Owner này
+        const query = `
+            SELECT DISTINCT u.uom_name, u.base_unit, pu.conversion_factor, u.id as uom_id
+            FROM product_uom pu
+            JOIN uom u ON pu.uom_id = u.id
+            JOIN product p ON pu.product_id = p.id
+            WHERE p.owner_id = $1
+        `;
+        const result = await db.query(query, [owner_id]);
+        res.status(200).json({ success: true, data: result.rows });
+    } catch (error) {
+        console.error("Get Store Uoms Error:", error);
+        res.status(500).json({ success: false, message: 'Lỗi lấy danh sách đơn vị' });
+    }
+};
+
+export const importStock = async (req, res) => {
+    const owner_id = req.user.id; 
+    const { 
+        id, isNewProduct, code, name, category, price, 
+        quantity, importPrice, supplier, unit,
+        newUomName, conversionFactor 
+    } = req.body;
+
+    const client = await db.connect();
+    try {
+        await client.query('BEGIN');
+
+        let productId = id;
+
+        // BƯỚC 1: Xử lý thông tin Sản phẩm
+        if (isNewProduct || !productId) {
+            const insertProductSql = `
+                INSERT INTO product (owner_id, code, name, category, price, stock, unit, created_at)
+                VALUES ($1, $2, $3, $4, $5, 0, $6, NOW())
+                RETURNING id;
+            `;
+            const productRes = await client.query(insertProductSql, [owner_id, code, name, category, price, unit]);
+            productId = productRes.rows[0].id;
+        } else {
+            // Nếu sản phẩm cũ, cập nhật lại giá bán lẻ mới và đơn vị cơ sở nếu cần
+            await client.query(
+                `UPDATE product SET price = $1, unit = $2, updated_at = NOW() WHERE id = $3`,
+                [price, unit, productId]
+            );
+        }
+
+        // BƯỚC 2: Xử lý bảng UOM (Lưu mối quan hệ Đơn vị nhập -> Đơn vị cơ sở)
+        const findUomSql = `
+            SELECT id FROM uom 
+            WHERE uom_name = $1 AND (owner_id = $2 OR owner_id IS NULL)
+            LIMIT 1;
+        `;
+        let uomRes = await client.query(findUomSql, [newUomName, owner_id]);
+        let uomId;
+
+        if (uomRes.rows.length === 0) {
+            // CẬP NHẬT: Thêm cả base_unit vào bảng uom khi tạo mới đơn vị cho Owner
+            const insertUomSql = `
+                INSERT INTO uom (uom_name, base_unit, owner_id) 
+                VALUES ($1, $2, $3) 
+                RETURNING id;
+            `;
+            const newUom = await client.query(insertUomSql, [newUomName, unit, owner_id]);
+            uomId = newUom.rows[0].id;
+        } else {
+            uomId = uomRes.rows[0].id;
+            await client.query(
+                `UPDATE uom SET base_unit = $1 WHERE id = $2 AND owner_id = $3`,
+                [unit, uomId, owner_id]
+            );
+        }
+
+        // BƯỚC 3: Xử lý bảng PRODUCT_UOM (Quy đổi cho sản phẩm cụ thể)
+        
+        // 3.1. Đảm bảo đơn vị cơ sở (hệ số 1) luôn tồn tại cho sản phẩm này
+        // Lấy ID của đơn vị cơ sở
+        let baseUomRes = await client.query(findUomSql, [unit, owner_id]);
+        if (baseUomRes.rows.length > 0) {
+            await client.query(`
+                INSERT INTO product_uom (product_id, uom_id, conversion_factor, is_base_unit, selling_price)
+                VALUES ($1, $2, 1, true, $3)
+                ON CONFLICT (product_id, uom_id) DO UPDATE SET is_base_unit = true;
+            `, [productId, baseUomRes.rows[0].id, price]);
+        }
+
+        // 3.2. Lưu/Cập nhật đơn vị quy đổi đang dùng để nhập hàng (ví dụ: Thùng)
+        const upsertProductUomSql = `
+            INSERT INTO product_uom (product_id, uom_id, conversion_factor, is_base_unit, selling_price)
+            VALUES ($1, $2, $3, false, $4)
+            ON CONFLICT (product_id, uom_id) DO UPDATE 
+            SET conversion_factor = EXCLUDED.conversion_factor,
+                selling_price = EXCLUDED.selling_price;
+        `;
+        await client.query(upsertProductUomSql, [productId, uomId, conversionFactor, price]);
+
+        // BƯỚC 4: Cập nhật tồn kho (quy đổi về đơn vị nhỏ nhất)
+        const addedStock = Number(quantity) * Number(conversionFactor);
+        await client.query(
+            'UPDATE product SET stock = stock + $1 WHERE id = $2',
+            [addedStock, productId]
+        );
+
+        // BƯỚC 5: Ghi lịch sử nhập kho
+        const total_cost = Number(quantity) * Number(importPrice);
+        await client.query(`
+            INSERT INTO stock_import (product_id, owner_id, quantity, import_price, total_cost, supplier, uom_name, imported_by_user_id, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW());
+        `, [productId, owner_id, quantity, importPrice, total_cost, supplier, newUomName, owner_id]);
+
+        const logData = {
+            user_id: owner_id,
+            action: 'IMPORT_STOCK',
+            entity_type: 'inventory',
+            entity_id: productId,
+            new_value: { 
+                productId,
+                qty: quantity, 
+                price: importPrice, 
+                total: Number(quantity) * Number(importPrice) 
+            },
+            timestamp: new Date()
+        };
+
+        const mqChannel = getChannel();
+        if (mqChannel) {
+            const isSent = mqChannel.sendToQueue(
+                'system_audit_logs',
+                Buffer.from(JSON.stringify(logData)),
+                { persistent: true } // Đảm bảo tin nhắn được lưu xuống đĩa nếu RabbitMQ restart
+            );
+            if (!isSent) {
+                throw new Error("RabbitMQ buffer full - Không thể gửi log");
+            }
+            console.log("Đã đẩy log vào hàng đợi RabbitMQ");
+        }
+        else {
+            throw new Error("Không thể kết nối RabbitMQ - Hủy giao dịch");
+        }
+
+        await client.query('COMMIT');
+        res.status(200).json({ success: true, message: 'Nhập hàng và cập nhật đơn vị thành công!' });
+
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error("Lỗi importStock:", error);
+        res.status(500).json({ success: false, message: 'Lỗi server' });
+    } finally {
+        client.release();
+    }
+};
