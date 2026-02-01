@@ -81,6 +81,7 @@ export const register = async (req, res) => {
 
 // đăng nhập
 export const login = async (req, res) => {
+
     // 1. Lấy thông tin đăng nhập từ body
     const { phone_number, password } = req.body;
 
@@ -90,17 +91,21 @@ export const login = async (req, res) => {
             return res.status(400).json({ message: 'Vui lòng nhập số điện thoại và mật khẩu' });
         }
 
-        // 3. Tìm người dùng trong database bằng số điện thoại
+        // 3. Tìm người dùng trong database bằng số điện thoại và cấu hình hệ thống song song để tối ưu tốc độ
         // JOIN với bảng role để lấy quyền hạn ngay khi đăng nhập
-        const userRes = await db.query(
-            `SELECT u.*, r.role_name 
-             FROM "users" u 
-             JOIN "role" r ON u.role_id = r.id 
-             WHERE u.phone_number = $1`, 
-            [phone_number]
-        );
+        const [userRes, configRes] = await Promise.all([
+            db.query(
+                `SELECT u.*, r.role_name 
+                 FROM "users" u 
+                 JOIN "role" r ON u.role_id = r.id 
+                 WHERE u.phone_number = $1`, 
+                [phone_number]
+            ),
+            db.query('SELECT maintenance_mode, support_email FROM system_config WHERE id = 1')
+        ]);
 
         const user = userRes.rows[0];
+        const systemConfig = configRes.rows[0];
 
         // 4. Kiểm tra người dùng có tồn tại không
         if (!user) {
@@ -114,22 +119,52 @@ export const login = async (req, res) => {
         }
 
         // 6. Kiểm tra trạng thái tài khoản
-        // Chỉ cho phép đăng nhập nếu trạng thái là 'ACTIVE'
         if (user.status !== 'ACTIVE') {
+            // Trường hợp 1: Tài khoản mới đăng ký, đang chờ Admin duyệt
+            if (user.status === 'PENDING') {
+                return res.status(403).json({ 
+                    success: false,
+                    message: `Tài khoản của bạn đang chờ phê duyệt. Vui lòng đợi thông báo từ hệ thống hoặc liên hệ ${systemConfig.support_email} để được hỗ trợ nhanh nhất.`,
+                    status: 'PENDING' 
+                });
+            } 
+            
+            // Trường hợp 2: Tài khoản bị khóa (thường do vi phạm hoặc yêu cầu từ chủ sở hữu)
+            if (user.status === 'LOCKED') {
+                return res.status(403).json({ 
+                    success: false,
+                    message: `Tài khoản của bạn đã bị khóa. Vui lòng liên hệ hỗ trợ kỹ thuật qua email: ${systemConfig.support_email} để biết thêm chi tiết.`,
+                    status: 'LOCKED' 
+                });
+            }
+
+            // Trường hợp 3: Các trạng thái khác (nếu có)
             return res.status(403).json({ 
-                message: 'Tài khoản của bạn đang chờ phê duyệt hoặc đã bị khóa',
+                success: false,
+                message: `Tài khoản không khả dụng. Vui lòng liên hệ hỗ trợ kỹ thuật qua email: ${systemConfig.support_email} để biết thêm chi tiết.`,
                 status: user.status 
             });
         }
 
+        // 7. KIỂM TRA BẢO TRÌ (MAINTENANCE MODE)
+        // Nếu hệ thống đang bảo trì VÀ người dùng KHÔNG PHẢI là ADMIN thì mới chặn
+        if (systemConfig?.maintenance_mode && user.role_name !== 'ADMIN') {
+            return res.status(503).json({ 
+                message: `Hệ thống đang bảo trì. Vui lòng quay lại sau hoặc liên hệ ${systemConfig.support_email}`,
+                maintenance: true 
+            });
+        }
+
         const ownerId = user.owner_id || user.id;
-        // 7. Tạo mã Token JWT
+        // 8. Tạo mã Token JWT
         const token = generateToken(user.id, user.role_name, ownerId, res);
 
-        // 8. Trả về thông tin người dùng (không kèm password) và token
+        // 9. Trả về thông tin người dùng (không kèm password) và token
         res.status(200).json({
             success: true,
-            message: 'Đăng nhập thành công',
+            message: user.role_name === 'ADMIN' && systemConfig?.maintenance_mode 
+                ? 'Đăng nhập thành công (Chế độ quản trị trong khi bảo trì)' 
+                : 'Đăng nhập thành công',
             user: {
                 id: user.id,
                 full_name: user.full_name,

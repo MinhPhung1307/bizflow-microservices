@@ -112,7 +112,7 @@ export default function AuditLogsPage() {
             Nhật Ký Hoạt Động
           </h1>
           <p className="text-muted-foreground mt-1">
-            Theo dõi thay đổi hệ thống và truy vết trách nhiệm trong 30 ngày.
+            Theo dõi thay đổi hệ thống và truy vết trách nhiệm.
           </p>
         </div>
         <div className="flex gap-3">

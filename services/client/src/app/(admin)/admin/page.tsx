@@ -2,8 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/axios';
-import { adminService } from '@/services/admin.service';
+import { reportService } from '@/services/report.service';
 import { formatCurrency } from '@/lib/utils';
 import { Users, TrendingUp, CreditCard, Activity, Calendar } from 'lucide-react';
 import { 
@@ -25,19 +24,19 @@ export default function AdminDashboard() {
   // Fetch số liệu tổng quan (Không ảnh hưởng bởi range)
   const { data: stats } = useQuery({
       queryKey: ['admin-stats'],
-      queryFn: adminService.getDashboardStats,
+      queryFn: reportService.getDashboardStats,
   });
 
   // Fetch dữ liệu Biểu đồ Doanh thu (Theo revenueRange)
   const { data: revenueChartData = [] } = useQuery({
       queryKey: ['admin-chart-revenue', revenueRange],
-      queryFn: async () => (await api.get(`/admin/stats/revenue?range=${revenueRange}`)).data
+      queryFn: reportService.getRevenueStats.bind(null, revenueRange)
   });
 
   // Fetch dữ liệu Biểu đồ Tăng trưởng (Theo growthRange)
   const { data: growthChartData = [] } = useQuery({
       queryKey: ['admin-chart-growth', growthRange],
-      queryFn: async () => (await api.get(`/admin/stats/growth?range=${growthRange}`)).data
+      queryFn: reportService.getGrowthStats.bind(null, growthRange)
   });
 
   return (
