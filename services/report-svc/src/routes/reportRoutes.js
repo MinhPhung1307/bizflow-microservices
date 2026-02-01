@@ -18,6 +18,11 @@ router.get('/best-sellers', isOwner, ReportController.getBestSellers); // Xem h�
 router.get('/compliance/ledger', isOwner, ReportController.getAccountingLedger); // Sổ sách thuế
 
 // --- API CHO QUẢN TRỊ VIÊN (ADMIN) ---
-router.get('/admin/stats', isAdmin, ReportController.getAdminStats); // Tổng quan hệ thống
+// Routes Thống kê 
+router.get('/admin/stats', isAdmin, ReportController.getSystemStats); 
+router.get('/admin/stats/revenue', isAdmin, ReportController.getRevenueStats); // Biểu đồ doanh thu
+router.get('/admin/stats/growth', isAdmin, ReportController.getGrowthStats);
+router.get('/admin/stats/payment-methods', isAdmin, ReportController.getPaymentMethodStats);
+router.get('/admin/stats/top-owners', isAdmin, ReportController.getTopOwners);
 
 export default router;

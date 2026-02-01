@@ -1,19 +1,20 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/axios';
 import { formatCurrency } from '@/lib/utils';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Trophy, Wallet, CreditCard, Banknote } from 'lucide-react';
 
+import { reportService } from '@/services/report.service';
+
 // Màu sắc cho biểu đồ tròn
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042'];
 
 const PAYMENT_LABELS: Record<string, string> = {
-    'CASH': 'Tiền mặt',
-    'TRANSFER': 'Chuyển khoản',
-    'DEBT': 'Ghi nợ'
+    'cash': 'Tiền mặt',
+    'transfer': 'Chuyển khoản',
+    'debt': 'Ghi nợ'
 };
 
 export default function ReportsPage() {
@@ -21,13 +22,19 @@ export default function ReportsPage() {
   // 1. Fetch dữ liệu Phương thức thanh toán
   const { data: paymentStats = [] } = useQuery({
     queryKey: ['admin-stats-payment'],
-    queryFn: async () => (await api.get('/admin/stats/payment-methods')).data
+    queryFn: async () => {
+        const data = await reportService.getPaymentMethodStats();
+        return data ?? [];
+    },
   });
 
   // 2. Fetch dữ liệu Top Owners
   const { data: topOwners = [] } = useQuery({
     queryKey: ['admin-stats-top-owners'],
-    queryFn: async () => (await api.get('/admin/stats/top-owners')).data
+    queryFn: async () => {
+        const data = await reportService.getTopOwners();
+        return data ?? [];
+    },
   });
 
   // Chuẩn hóa dữ liệu cho PieChart
@@ -134,7 +141,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <QuickStatCard 
             label="Giao dịch Tiền mặt" 
-            value={formatCurrency(Number(paymentStats.find((x: any) => x.payment_method === 'CASH')?.value || 0))} 
+            value={formatCurrency(Number(paymentStats.find((x: any) => x.payment_method === 'cash')?.value || 0))} 
             icon={Banknote} 
             color="text-green-600 bg-green-50"
           />
@@ -146,7 +153,7 @@ export default function ReportsPage() {
           />
            <QuickStatCard 
             label="Đang Ghi nợ" 
-            value={formatCurrency(Number(paymentStats.find((x: any) => x.payment_method === 'DEBT')?.value || 0))} 
+            value={formatCurrency(Number(paymentStats.find((x: any) => x.payment_method === 'debt')?.value || 0))} 
             icon={Wallet} 
             color="text-red-600 bg-red-50"
           />
