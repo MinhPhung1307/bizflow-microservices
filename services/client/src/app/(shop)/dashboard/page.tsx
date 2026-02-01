@@ -10,40 +10,36 @@ import AIOrderCreator from '@/components/AIOrderCreator';
 import { formatDistanceToNow } from 'date-fns';
 import { vi } from 'date-fns/locale';
 
-// Dữ liệu giả lập cho biểu đồ (Vì chưa có API trả về lịch sử theo ngày)
-const REVENUE_DATA = [
-  { name: 'T2', revenue: 4000000, cost: 2400000 },
-  { name: 'T3', revenue: 3000000, cost: 1398000 },
-  { name: 'T4', revenue: 2000000, cost: 9800000 },
-  { name: 'T5', revenue: 2780000, cost: 3908000 },
-  { name: 'T6', revenue: 1890000, cost: 4800000 },
-  { name: 'T7', revenue: 2390000, cost: 3800000 },
-  { name: 'CN', revenue: 3490000, cost: 4300000 },
-];
-
 export default function DashboardPage() {
+  const [range, setRange] = React.useState('7d');
   // 1. Fetch Doanh thu hôm nay
   const { data: revenueData, isLoading: loadRevenue } = useQuery({
       queryKey: ['dashboard-revenue'],
-      queryFn: reportService.getDailyRevenue,
+      queryFn: reportService.owner.getDailyRevenue,
   });
 
   // 2. Fetch Công nợ
   const { data: debtData, isLoading: loadDebt } = useQuery({
       queryKey: ['dashboard-debt'],
-      queryFn: reportService.getDebtStats,
+      queryFn: reportService.owner.getDebtStats,
   });
 
   // 3. Fetch Cảnh báo tồn kho
   const { data: lowStockData, isLoading: loadStock } = useQuery({
       queryKey: ['dashboard-low-stock'],
-      queryFn: reportService.getLowStock,
+      queryFn: reportService.owner.getLowStock,
   });
 
-  // 4. Fetch Hoạt động gần đây
+  // 4. Fetch Biểu đồ Doanh thu & Chi phí (theo range)
+  const { data: chartData = [], isLoading: loadWeekly } = useQuery({
+      queryKey: ['dashboard-revenue-cost', range],
+      queryFn: () => reportService.owner.getRevenueStats(range), // range ở đây là '7d', '1m', hoặc '1y'
+  });
+
+  // 5. Fetch Hoạt động gần đây
   const { data: recentActivities, isLoading: loadActivities } = useQuery({
       queryKey: ['dashboard-recent'],
-      queryFn: () => reportService.getRecentActivities(5),
+      queryFn: () => reportService.owner.getRecentActivities(5),
   });
 
   // Hàm hiển thị tóm tắt hàng tồn kho
@@ -97,7 +93,7 @@ export default function DashboardPage() {
         <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-slate-500 text-sm font-medium">Cảnh báo tồn kho</p>
+              <p className="text-slate-500 text-sm font-medium">Cảnh báo tồn kho (&lt;100 đơn vị)</p>
               <h3 className="text-3xl font-bold text-orange-500 mt-2">
                 {loadStock ? '...' : `${lowStockData?.length || 0} SP`}
               </h3>
@@ -116,30 +112,83 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           
           {/* Biểu đồ Doanh thu (Mock Data) */}
-          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-              <div className="flex justify-between items-center mb-6">
-                   <h3 className="text-lg font-bold text-slate-800">Doanh thu & Chi phí (Tuần này)</h3>
-                   <select className="text-sm border border-slate-200 rounded-lg p-1 bg-slate-50">
-                       <option>7 ngày qua</option>
-                       <option>Tháng này</option>
-                   </select>
+          <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-lg font-bold text-slate-800">Doanh thu & Chi phí</h3>
+              <select 
+                className="text-sm border border-slate-200 rounded-lg px-3 py-1.5 bg-slate-50 hover:bg-slate-100 transition-colors outline-none focus:ring-2 focus:ring-blue-500/20" 
+                value={range} 
+                onChange={(e) => setRange(e.target.value)}
+              >
+                <option value="7d">7 ngày qua</option>
+                <option value="1m">1 Tháng qua</option>
+                <option value="1y">Năm nay</option>
+              </select>
+            </div>
+
+            <div className="h-72 w-full mb-4">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tickMargin={12} 
+                    style={{ fontSize: '11px', fill: '#64748b', fontWeight: 500 }}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tickFormatter={(val) => `${(val/1000000).toFixed(0)}Tr`}
+                    style={{ fontSize: '11px', fill: '#64748b' }}
+                  />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                    formatter={(val: any) => [formatCurrency(val), ""]}
+                  />
+                  <Legend 
+                    verticalAlign="top" 
+                    align="right" 
+                    wrapperStyle={{ paddingBottom: '20px', fontSize: '12px', fontWeight: 500 }} 
+                    iconType="circle"
+                  />
+                  <Bar dataKey="revenue" name="Doanh thu" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={range === '7d' ? 25 : 12} />
+                  <Bar dataKey="cost" name="Chi phí" fill="#cbd5e1" radius={[4, 4, 0, 0]} barSize={range === '7d' ? 25 : 12} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="mt-auto pt-6 border-t border-slate-100 flex items-center justify-around relative">
+              {/* Doanh thu */}
+              <div className="flex flex-col items-center text-center flex-1">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">
+                  Dòng tiền vào
+                </span>
+                <span className="text-xl font-extrabold text-blue-600">
+                  {formatCurrency(chartData.reduce((acc, curr) => acc + (curr.revenue || 0), 0))}
+                </span>
+                <span className="text-[11px] text-blue-500 bg-blue-50 px-2 py-0.5 rounded-full mt-2 font-medium">
+                  Tổng doanh thu
+                </span>
               </div>
-              <div className="h-72 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={REVENUE_DATA} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="name" axisLine={false} tickLine={false} tickMargin={10} />
-                      <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${val/1000000}Tr`} />
-                      <Tooltip 
-                          formatter={(val: any) => formatCurrency(val)} 
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                      />
-                      <Legend />
-                      <Bar dataKey="revenue" name="Doanh thu" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={30} />
-                      <Bar dataKey="cost" name="Chi phí" fill="#94a3b8" radius={[4, 4, 0, 0]} barSize={30} />
-                  </BarChart>
-                  </ResponsiveContainer>
+
+              <div className="h-12 w-[1px] bg-slate-200 hidden md:block"></div>
+
+              {/* Chi phí */}
+              <div className="flex flex-col items-center text-center flex-1">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">
+                  Vốn lưu động
+                </span>
+                <span className="text-xl font-extrabold text-slate-700">
+                  {formatCurrency(chartData.reduce((acc, curr) => acc + (curr.cost || 0), 0))}
+                </span>
+                <span className="text-[11px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full mt-2 font-medium">
+                  Chi tiêu nhập hàng
+                </span>
               </div>
+            </div>
           </div>
 
           {/* Hoạt động gần đây (Real Data) */}

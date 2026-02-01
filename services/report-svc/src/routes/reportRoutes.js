@@ -7,22 +7,33 @@ const router = express.Router();
 
 router.use(verifyToken); // Tất cả đều cần đăng nhập
 
-// --- API CHO CHỦ CỬA HÀNG (OWNER) ---
-router.get('/daily-revenue', isOwner, ReportController.getDailyRevenue); // Cũ
-router.get('/recent-orders', isOwner, ReportController.getRecentOrders); // Cũ
-
-// Mới bổ sung
-router.get('/debt', isOwner, ReportController.getDebtReport);          // Xem ai đang nợ
-router.get('/inventory/low-stock', isOwner, ReportController.getLowStock); // Xem hàng sắp hết
-router.get('/best-sellers', isOwner, ReportController.getBestSellers); // Xem hàng bán chạy
-router.get('/compliance/ledger', isOwner, ReportController.getAccountingLedger); // Sổ sách thuế
-
 // --- API CHO QUẢN TRỊ VIÊN (ADMIN) ---
-// Routes Thống kê 
+
+// Thống kê hệ thống tổng quát
 router.get('/admin/stats', isAdmin, ReportController.getSystemStats); 
-router.get('/admin/stats/revenue', isAdmin, ReportController.getRevenueStats); // Biểu đồ doanh thu
+// Thống kê doanh thu
+router.get('/admin/stats/revenue', isAdmin, ReportController.getRevenueStats); 
+// Thống kê tăng trưởng người dùng & cửa hàng
 router.get('/admin/stats/growth', isAdmin, ReportController.getGrowthStats);
+// Thống kê phương thức thanh toán
 router.get('/admin/stats/payment-methods', isAdmin, ReportController.getPaymentMethodStats);
+// Thống kê chủ cửa hàng hàng đầu
 router.get('/admin/stats/top-owners', isAdmin, ReportController.getTopOwners);
 
+// --- API CHO CHỦ CỬA HÀNG (OWNER) ---
+
+// Doanh thu hôm nay
+router.get('/owner/daily-revenue', isOwner, ReportController.getDailyRevenue);   
+// Thống kê nợ phải thu
+router.get('/owner/debt', isOwner, ReportController.getDebtStats);  
+// Báo cáo tồn kho & bán chạy        
+router.get('/owner/inventory/low-stock', isOwner, ReportController.getLowStock);
+// Biểu đồ doanh thu & chi phí
+router.get('/owner/stats/revenue', isOwner, ReportController.getRevenueCostStats); 
+// Hoạt động gần đây
+router.get('/owner/recent-orders', isOwner, ReportController.getRecentActivities);
+// Sản phẩm bán chạy
+router.get('/owner/best-sellers', isOwner, ReportController.getBestSellers); 
+// Sổ cái kế toán
+router.get('/owner/compliance/ledger', isOwner, ReportController.getAccountingLedger); 
 export default router;

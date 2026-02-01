@@ -3,83 +3,9 @@ import ReportModel from '../models/ReportModel.js';
 import database from '../config/db.js';
 
 class ReportController {
-    
-    // --- 1. CÁC HÀM CŨ ---
-    static async getDailyRevenue(req, res) {
-        try {
-            const ownerId = req.user.userId; 
-            const data = await ReportModel.getDailyRevenue(ownerId);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: 'Lỗi server' });
-        }
-    }
+    // Thống kê hệ thống - Admin
 
-    static async getRecentOrders(req, res) {
-        try {
-            const ownerId = req.user.userId;
-            const limit = req.query.limit || 5;
-            const data = await ReportModel.getRecentOrders(ownerId, limit);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: 'Lỗi server' });
-        }
-    }
-
-    // --- 2. CÁC HÀM MỚI (Bắt buộc phải có để Route mới chạy được) ---
-
-    // Báo cáo công nợ
-    static async getDebtReport(req, res) {
-        try {
-            const ownerId = req.user.userId;
-            const data = await ReportModel.getDebtReport(ownerId);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: error.message });
-        }
-    }
-
-    // Cảnh báo tồn kho
-    static async getLowStock(req, res) {
-        try {
-            const ownerId = req.user.userId;
-            const data = await ReportModel.getLowStockProducts(ownerId);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: error.message });
-        }
-    }
-
-    // Top sản phẩm bán chạy
-    static async getBestSellers(req, res) {
-        try {
-            const ownerId = req.user.userId;
-            const data = await ReportModel.getTopSellingProducts(ownerId);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: error.message });
-        }
-    }
-
-    // Sổ cái kế toán (Thông tư 88)
-    static async getAccountingLedger(req, res) {
-        try {
-            const ownerId = req.user.userId;
-            const { month, year } = req.query; 
-            
-            if (!month || !year) {
-                return res.status(400).json({ message: "Vui lòng cung cấp tháng và năm (?month=1&year=2026)" });
-            }
-
-            const data = await ReportModel.getAccountingLedger(ownerId, month, year);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: error.message });
-        }
-    }
-
-    // Thống kê hệ thống
-    // Admin mới có quyền truy cập
+    // Biểu đồ doanh thu
     static async getSystemStats(req, res) {
         try {
             // 1. Đếm tổng số Owner
@@ -233,6 +159,192 @@ class ReportController {
             res.status(500).json([]);
         }
     };
+
+    // Thống kê hệ thống - Owner
+
+    // Lấy doanh thu trong ngày
+    static async getDailyRevenue(req, res) {
+        try {
+            const ownerId = req.user.userId;
+            const query = `
+                SELECT SUM(total_price) as revenue 
+                FROM sales_order 
+                WHERE owner_id = $1 
+                AND status ILIKE 'completed'
+                AND created_at >= CURRENT_DATE
+            `;
+            const result = await database.query(query, [ownerId]);
+            
+            // Bạn có thể tính thêm growth bằng cách so sánh với ngày hôm qua nếu muốn
+            res.status(200).json({
+                success: true,
+                data: {
+                    revenue: parseFloat(result.rows[0].revenue || 0),
+                    growth: 0 // Logic tăng trưởng có thể thêm sau
+                }
+            });
+        } catch (error) {
+            res.status(500).json({ message: "Lỗi tính doanh thu" });
+        }
+    }
+
+    // Báo cáo công nợ
+    static async getDebtStats(req, res) {
+        try {
+            const ownerId = req.user.userId;
+            const query = `
+                SELECT SUM(total_price) as total_debt, COUNT(DISTINCT customer_id) as count
+                FROM sales_order 
+                WHERE owner_id = $1 
+                AND payment_method ILIKE 'debt%'
+                AND status ILIKE 'completed'
+            `;
+            const result = await database.query(query, [ownerId]);
+            res.status(200).json({
+                success: true,
+                data: {
+                    total_debt: parseFloat(result.rows[0].total_debt || 0),
+                    count: parseInt(result.rows[0].count || 0)
+                }
+            });
+        } catch (error) {
+            res.status(500).json({ message: "Lỗi lấy công nợ" });
+        }
+    }
+
+    // Cảnh báo tồn kho
+    static async getLowStock(req, res) {
+        try {
+            const ownerId = req.user.userId;
+            const threshold = 100; // Ngưỡng cảnh báo
+            const query = `
+                SELECT id, name, stock, unit 
+                FROM product 
+                WHERE owner_id = $1 AND stock < $2
+                ORDER BY stock ASC
+            `;
+            const result = await database.query(query, [ownerId, threshold]);
+            res.status(200).json({ success: true, data: result.rows });
+        } catch (error) {
+            res.status(500).json({ message: "Lỗi lấy tồn kho" });
+        }
+    }
+
+    // Biểu đồ doanh thu và chi phí
+    static async getRevenueCostStats(req, res) {
+        const { range } = req.query; // '7d', '1m', '1y'
+        const ownerId = req.user.userId;
+
+        console.log("Received range:", range, "Owner ID:", ownerId);
+
+        // Cấu hình mặc định (7 ngày)
+        let timeFilter = "CURRENT_DATE - INTERVAL '6 days'";
+        let dateFormat = "DD/MM"; 
+        let truncType = 'day';    
+        let seriesInterval = '1 day';
+
+        // Điều chỉnh dựa trên range
+        if (range === '1m') {
+            timeFilter = "CURRENT_DATE - INTERVAL '29 days'";
+            dateFormat = "DD/MM";
+            truncType = 'day';
+            seriesInterval = '1 day';
+        } else if (range === '1y') {
+            timeFilter = "DATE_TRUNC('year', CURRENT_DATE)";
+            dateFormat = "MM/YYYY";
+            truncType = 'month';
+            seriesInterval = '1 month';
+        }
+
+        try {
+            const query = `
+                WITH date_series AS (
+                    SELECT generate_series(${timeFilter}, CURRENT_DATE, '${seriesInterval}')::date AS d
+                )
+                SELECT 
+                    TO_CHAR(ds.d, '${dateFormat}') as name,
+                    -- 1. Tính Doanh thu từ sales_order
+                    COALESCE((
+                        SELECT SUM(total_price) 
+                        FROM sales_order 
+                        WHERE owner_id = $1 
+                        AND status ILIKE 'completed' 
+                        AND created_at::date = ds.d
+                    ), 0) as revenue,
+                    -- 2. Tính Chi phí từ bảng stock_import (theo logic hàm importStock của bạn)
+                    COALESCE((
+                        SELECT SUM(total_cost) 
+                        FROM stock_import 
+                        WHERE owner_id = $1 
+                        AND created_at::date = ds.d
+                    ), 0) as cost
+                FROM date_series ds
+                ORDER BY ds.d ASC
+            `;
+
+            const result = await database.query(query, [ownerId]);
+            
+            res.status(200).json({
+                success: true,
+                data: result.rows.map(row => ({
+                    name: row.name,
+                    revenue: parseFloat(row.revenue),
+                    cost: parseFloat(row.cost)
+                }))
+            });
+        } catch (error) {
+            console.error("Revenue Cost Chart Error:", error);
+            res.status(500).json({ success: false, data: [] });
+        }
+    }
+
+    // Lấy các hoạt động/đơn hàng gần đây
+    static async getRecentActivities(req, res) {
+        try {
+            const ownerId = req.user.userId;
+            const limit = req.query.limit || 5;
+            const query = `
+                SELECT s.id, u.full_name as customer_name, s.total_price, s.status, s.created_at
+                FROM sales_order s
+                LEFT JOIN users u ON s.customer_id = u.id
+                WHERE s.owner_id = $1
+                ORDER BY s.created_at DESC
+                LIMIT $2
+            `;
+            const result = await database.query(query, [ownerId, limit]);
+            res.status(200).json({ success: true, data: result.rows });
+        } catch (error) {
+            res.status(500).json({ message: "Lỗi lấy đơn hàng gần đây" });
+        }
+    }
+
+    // Top sản phẩm bán chạy
+    static async getBestSellers(req, res) {
+        try {
+            const ownerId = req.user.userId;
+            const data = await ReportModel.getTopSellingProducts(ownerId);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
+
+    // Sổ cái kế toán (Thông tư 88)
+    static async getAccountingLedger(req, res) {
+        try {
+            const ownerId = req.user.userId;
+            const { month, year } = req.query; 
+            
+            if (!month || !year) {
+                return res.status(400).json({ message: "Vui lòng cung cấp tháng và năm (?month=1&year=2026)" });
+            }
+
+            const data = await ReportModel.getAccountingLedger(ownerId, month, year);
+            return res.status(200).json({ success: true, data });
+        } catch (error) {
+            return res.status(500).json({ success: false, message: error.message });
+        }
+    }
 }
 
 export default ReportController;

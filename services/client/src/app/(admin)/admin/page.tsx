@@ -24,19 +24,19 @@ export default function AdminDashboard() {
   // Fetch số liệu tổng quan (Không ảnh hưởng bởi range)
   const { data: stats } = useQuery({
       queryKey: ['admin-stats'],
-      queryFn: reportService.getDashboardStats,
+      queryFn: reportService.admin.getDashboardStats,
   });
 
   // Fetch dữ liệu Biểu đồ Doanh thu (Theo revenueRange)
   const { data: revenueChartData = [] } = useQuery({
       queryKey: ['admin-chart-revenue', revenueRange],
-      queryFn: reportService.getRevenueStats.bind(null, revenueRange)
+      queryFn: reportService.admin.getRevenueStats.bind(null, revenueRange)
   });
 
   // Fetch dữ liệu Biểu đồ Tăng trưởng (Theo growthRange)
   const { data: growthChartData = [] } = useQuery({
       queryKey: ['admin-chart-growth', growthRange],
-      queryFn: reportService.getGrowthStats.bind(null, growthRange)
+      queryFn: reportService.admin.getGrowthStats.bind(null, growthRange)
   });
 
   return (
