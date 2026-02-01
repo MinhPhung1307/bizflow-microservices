@@ -13,7 +13,6 @@ export const createOrderItemTable = async () => {
                 price DECIMAL(19, 2) NOT NULL CHECK (price >= 0),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     
-                FOREIGN KEY (order_id) REFERENCES sales_order(id) ON DELETE CASCADE,
                 FOREIGN KEY (product_id) REFERENCES product(id) ON DELETE CASCADE
             );
         `;

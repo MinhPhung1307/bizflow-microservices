@@ -23,7 +23,7 @@ export default function ReportsPage() {
   const { data: paymentStats = [] } = useQuery({
     queryKey: ['admin-stats-payment'],
     queryFn: async () => {
-        const data = await reportService.getPaymentMethodStats();
+        const data = await reportService.admin.getPaymentMethodStats();
         return data ?? [];
     },
   });
@@ -32,7 +32,7 @@ export default function ReportsPage() {
   const { data: topOwners = [] } = useQuery({
     queryKey: ['admin-stats-top-owners'],
     queryFn: async () => {
-        const data = await reportService.getTopOwners();
+        const data = await reportService.admin.getTopOwners();
         return data ?? [];
     },
   });
@@ -147,7 +147,7 @@ export default function ReportsPage() {
           />
            <QuickStatCard 
             label="Giao dịch Chuyển khoản" 
-            value={formatCurrency(Number(paymentStats.find((x: any) => x.payment_method === 'TRANSFER')?.value || 0))} 
+            value={formatCurrency(Number(paymentStats.find((x: any) => x.payment_method === 'transfer')?.value || 0))} 
             icon={CreditCard} 
             color="text-blue-600 bg-blue-50"
           />
