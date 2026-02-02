@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import client from 'prom-client'; // 1. Import thư viện prometheus
 import { initTables } from './models/index.js';
 import productRoutes from './routes/productRoutes.js';
 import { connectRabbitMQ } from './config/rabbitmq.js';
@@ -10,6 +11,24 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4002;
+
+// --- 2. CẤU HÌNH PROMETHEUS (Dùng prefix riêng cho Product Service) ---
+const register = new client.Registry();
+client.collectDefaultMetrics({
+    register,
+    prefix: 'product_svc_', 
+});
+
+// Endpoint để Prometheus truy cập lấy dữ liệu
+app.get('/metrics', async (req, res) => {
+    try {
+        res.setHeader('Content-Type', register.contentType);
+        res.send(await register.metrics());
+    } catch (ex) {
+        res.status(500).send(ex);
+    }
+});
+// -------------------------------------------------------------------
 
 // Middleware
 app.use(cookieParser());
@@ -30,5 +49,9 @@ app.get('/health', (req, res) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(` Product Service running on port ${PORT}`);
-  await connectRabbitMQ();
+  
+  // Khởi chạy RabbitMQ (Sử dụng .then/.catch để không làm treo server)
+  connectRabbitMQ()
+    .then(() => console.log("RabbitMQ connected for Product Service"))
+    .catch(err => console.error("RabbitMQ Connection Error:", err.message));
 });
