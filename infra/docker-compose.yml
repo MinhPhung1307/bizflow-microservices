@@ -150,10 +150,16 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: bizflow-prometheus
+    ports:
+      - "9090:9090"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
-      - bizflow-network
+      - bizflow-network # Phải trùng tên với network của các service khác
+    depends_on:
+      - identity-svc
+      - product-svc
+      - order-svc
 
   # --- GRAFANA ---
   grafana:
