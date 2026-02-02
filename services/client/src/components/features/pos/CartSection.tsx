@@ -8,11 +8,14 @@ import { orderService } from '@/services/order.service';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Trash2, User, CreditCard, Banknote, Search, Plus, Package } from 'lucide-react';
+import { Trash2, User, CreditCard, Banknote, Search, Plus, Package, FileText, Save } from 'lucide-react'; 
 import { toast } from 'sonner';
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+
+interface CartSectionProps {
+    selectedCustomer: any;
+    onCustomerSelect: (cus: any) => void;
+}
 
 export default function CartSection() {
   const { items, removeFromCart, updateQuantity, clearCart, total } = useCart();
@@ -28,17 +31,60 @@ export default function CartSection() {
     enabled: isCustomerModalOpen,
   });
 
+  // --- FUNCTION: Xử lý in hóa đơn ---
+  const handlePrintInvoice = (orderData: any) => {
+    // Cách đơn giản nhất: Mở một trang in riêng hoặc dùng window.print
+    // Trong thực tế, bạn nên gọi API lấy HTML hóa đơn rồi in
+    
+    // Demo in nhanh nội dung hiện tại
+    toast.info("🖨️ Đang gửi lệnh in...");
+    
+    const printContent = `
+      <html>
+        <head><title>Hóa đơn #${orderData.id}</title></head>
+        <body style="font-family: monospace; padding: 20px;">
+          <h2 style="text-align: center">CỬA HÀNG BIZFLOW</h2>
+          <p>Mã đơn: ${orderData.id}</p>
+          <p>Ngày: ${new Date().toLocaleString('vi-VN')}</p>
+          <hr/>
+          ${items.map(item => `
+            <div style="display: flex; justify-content: space-between;">
+              <span>${item.name} (x${item.quantity})</span>
+              <span>${(item.price * item.quantity).toLocaleString()}</span>
+            </div>
+          `).join('')}
+          <hr/>
+          <h3 style="text-align: right">Tổng: ${total().toLocaleString()} đ</h3>
+        </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '', 'width=600,height=600');
+    if(printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+        printWindow.print();
+    }
+  };
+
   // --- MUTATION: Tạo đơn hàng ---
   const createOrderMutation = useMutation({
     mutationFn: orderService.create,
-    onSuccess: () => {
-      toast.success('Thanh toán thành công!', { description: 'Đơn hàng đã được tạo.' });
-      clearCart();
-      setSelectedCustomer(null);
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+    onSuccess: (data, variables) => {
+        // Nếu là lưu nháp
+        if (variables.status === 'draft') {
+             toast.success('Đã lưu đơn nháp thành công!');
+        } else {
+             toast.success('Thanh toán thành công!', { description: `Mã đơn: ${data.id}` });
+             handlePrintInvoice(data);
+        }
+        
+        clearCart();
+        setSelectedCustomer(null);
+        queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (error: any) => {
-      toast.error('Lỗi thanh toán', { description: error.response?.data?.message || 'Có lỗi xảy ra' });
+      toast.error('Lỗi', { description: error.response?.data?.message || 'Có lỗi xảy ra' });
     }
   });
 
@@ -48,9 +94,18 @@ export default function CartSection() {
       return;
     }
 
-    if (paymentMethod === 'DEBT' && !selectedCustomer) {
-      toast.error('Vui lòng chọn khách hàng để ghi nợ');
-      return;
+    if (paymentMethod === 'DEBT') {
+        if (!selectedCustomer) {
+            toast.error('Cảnh báo nợ xấu!', { 
+                description: 'Vui lòng chọn khách hàng cụ thể để ghi nợ.' 
+            });
+            // Mở modal tìm khách hàng ngay lập tức để tiện cho user
+            setIsCustomerModalOpen(true);
+            return;
+        }
+        
+        // (Optional) Kiểm tra hạn mức nợ nếu có field credit_limit
+        // if (selectedCustomer.total_debt + total() > selectedCustomer.credit_limit) { ... }
     }
 
     const currentTotal = total();
@@ -69,7 +124,7 @@ export default function CartSection() {
       
       // Các trường bắt buộc theo TypeScript Type
       order_type: 'AT_COUNTER', // Loại đơn tại quầy
-      status: 'COMPLETED',      // Trạng thái hoàn thành ngay
+      status: 'completed',      // Trạng thái hoàn thành ngay
       is_debt: paymentMethod === 'DEBT', // Có nợ hay không
       total_price: currentTotal,
       tax_price: 0,            // Tạm thời để 0
@@ -77,6 +132,31 @@ export default function CartSection() {
     };
 
     // @ts-ignore - Bỏ qua check type nếu còn sót field nhỏ không quan trọng
+    createOrderMutation.mutate(payload);
+  };
+
+  const handleSaveDraft = () => {
+    if (items.length === 0) {
+        toast.error('Giỏ hàng trống, không thể lưu nháp');
+        return;
+    }
+
+    const payload = {
+        customer_id: selectedCustomer?.id || null,
+        customer_name: selectedCustomer?.full_name || 'Khách lẻ (Lưu nháp)',
+        items: items.map(item => ({
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price
+        })),
+        payment_method: 'CASH', 
+        is_debt: false,
+        total_price: total(),
+        status: 'draft',
+        amount_paid: 0
+    };
+    
+    // @ts-ignore
     createOrderMutation.mutate(payload);
   };
 
@@ -196,40 +276,48 @@ export default function CartSection() {
       </ScrollArea>
 
       {/* 3. FOOTER: Tổng tiền & Thanh toán */}
-      <div className="p-4 bg-slate-50 border-t space-y-4">
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-500">Tạm tính:</span>
-            <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total())}</span>
-          </div>
-          <div className="flex justify-between text-lg font-bold">
+      <div className="p-4 bg-slate-50 border-t space-y-3">
+        {/* Total info */}
+        <div className="flex justify-between text-lg font-bold">
             <span>Tổng cộng:</span>
             <span className="text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total())}</span>
-          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
+          {/* NÚT MỚI: LƯU NHÁP */}
           <Button 
-            className="w-full bg-green-600 hover:bg-green-700" 
+            variant="outline"
+            className="col-span-2 border-orange-200 text-orange-700 hover:bg-orange-50 flex items-center gap-2"
+            disabled={createOrderMutation.isPending || items.length === 0}
+            onClick={handleSaveDraft}
+          >
+             <Save size={16} /> Lưu đơn nháp
+          </Button>
+
+          <Button 
+            id="btn-pay-cash" 
+            className="bg-green-600 hover:bg-green-700" 
             disabled={createOrderMutation.isPending || items.length === 0}
             onClick={() => handleCheckout('CASH')}
           >
-            <Banknote className="mr-2 h-4 w-4" /> Tiền Mặt
+            <Banknote className="mr-2 h-4 w-4" /> Tiền Mặt (F4)
           </Button>
+          
           <Button 
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="bg-blue-600 hover:bg-blue-700"
             disabled={createOrderMutation.isPending || items.length === 0}
             onClick={() => handleCheckout('TRANSFER')}
           >
             <CreditCard className="mr-2 h-4 w-4" /> Chuyển Khoản
           </Button>
+          
           <Button 
             variant="outline" 
             className="col-span-2 border-red-200 text-red-600 hover:bg-red-50"
             disabled={createOrderMutation.isPending || items.length === 0}
             onClick={() => handleCheckout('DEBT')}
           >
-            Ghi Nợ (Công Nợ)
+            Ghi Nợ
           </Button>
         </div>
       </div>

@@ -18,6 +18,7 @@ interface CartState {
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   total: () => number;
+  setCart: (items: CartItem[]) => void;
 }
 
 export const useCart = create<CartState>()(
@@ -74,6 +75,8 @@ export const useCart = create<CartState>()(
       total: () => {
         return get().items.reduce((sum, item) => sum + item.price * item.quantity, 0);
       },
+
+      setCart: (newItems) => set({ items: newItems }),
     }),
     {
       name: 'pos-cart-storage', // Lưu vào localStorage để F5 không mất

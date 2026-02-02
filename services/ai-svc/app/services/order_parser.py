@@ -37,7 +37,7 @@ def generate_content_safe(model, prompt):
 
 async def parse_order_with_rag(message: str, owner_id: str) -> DraftOrderResponse:
     try:
-        # 1. Tìm kiếm RAG
+        # 1. Tìm kiếm RAG (Giữ nguyên)
         relevant_products = rag_service.search_products(owner_id, message)
         
         context_str = ""
@@ -48,24 +48,36 @@ async def parse_order_with_rag(message: str, owner_id: str) -> DraftOrderRespons
         else:
             context_str = "Không tìm thấy sản phẩm nào trong kho khớp với câu nói."
 
-        # 2. Gọi Gemini
+        # 2. Gọi Gemini - CẬP NHẬT PROMPT TẠI ĐÂY
         model = genai.GenerativeModel(GENERATIVE_MODEL_NAME)
         
         prompt = f"""
-        Bạn là nhân viên bán hàng. Hãy trích xuất đơn hàng từ câu nói khách hàng thành JSON.
-        
+        Bạn là trợ lý bán hàng thông minh. Nhiệm vụ: Trích xuất thông tin đơn hàng từ câu nói tự nhiên tiếng Việt thành JSON.
+
         {context_str}
-        
-        QUY TẮC:
-        1. **product_name**: Ưu tiên dùng tên trong danh sách gợi ý nếu khớp.
-        2. **quantity**: Số lượng (số thực).
-        3. **unit**: Đơn vị tính.
-        4. **customer_name**: Tên khách (nếu có).
-        5. **is_debt**: True nếu nợ.
+
+        QUY TẮC QUAN TRỌNG:
+        1. **customer_name**: 
+           - Tìm tên người sau các từ khóa: "cho", "của", "bán cho", "giao cho", "anh", "chị", "cô", "chú", "bác".
+           - Ví dụ: "Lấy 5 bao xi măng cho anh Hùng" -> customer_name: "Anh Hùng"
+           - Ví dụ: "Của chị Lan nợ nhé" -> customer_name: "Chị Lan"
+           - Nếu không tìm thấy tên người cụ thể, để null.
+        2. **product_name**: Ưu tiên mapping theo "DANH SÁCH SẢN PHẨM GỢI Ý" ở trên. Nếu không khớp, lấy nguyên văn lời nói.
+        3. **quantity**: Số lượng (số thực).
+        4. **unit**: Đơn vị tính (bao, cái, thùng, kg...).
+        5. **is_debt**: True nếu câu nói có từ "nợ", "ghi sổ", "thiếu", "trả sau". False nếu trả tiền mặt/chuyển khoản.
 
         Câu khách nói: "{message}"
         
-        Output JSON: {{ "customer_name": null, "items": [{{ "product_name": "...", "quantity": 1, "unit": "..." }}], "is_debt": false, "original_message": "..." }}
+        Output JSON format: 
+        {{ 
+            "customer_name": "Tên Khách hoặc null", 
+            "items": [
+                {{ "product_name": "Tên SP", "quantity": 1.0, "unit": "Đơn vị" }}
+            ], 
+            "is_debt": false, 
+            "original_message": "..." 
+        }}
         """
         
         # Gọi qua hàm an toàn đã có retry

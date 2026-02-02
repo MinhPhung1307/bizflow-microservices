@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { verifyToken } from '../middleware/authMiddleware.js';
-import { createOrder, getAllOrders } from '../controllers/OrderController.js';
+import { createOrder, getAllOrders, deleteOrder } from '../controllers/OrderController.js';
 import { createDraftOrderFromAI, transcribeAudio } from '../controllers/AIController.js';
 
 const router = express.Router();
@@ -14,5 +14,6 @@ router.post('/ai/transcribe', verifyToken, upload.single('audio'), transcribeAud
 // Order CRUD
 router.post('/', verifyToken, createOrder);
 router.get('/', verifyToken, getAllOrders);
+router.delete('/:id', verifyToken, deleteOrder);
 
 export default router;

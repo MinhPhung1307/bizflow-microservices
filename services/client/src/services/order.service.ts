@@ -17,5 +17,21 @@ export const orderService = {
   analyzeOrder: async (message: string) => {
     const response = await api.post('/orders/ai/draft', { message });
     return response.data; // Hoặc response.data.data tùy cấu trúc
-}
+  },
+
+  getDrafts: async () => {
+    const response = await api.get('/orders?status=DRAFT'); 
+    return (response.data as any).data || response.data;
+  },
+
+  // Tạo đơn nháp
+  createDraft: async (orderData: any) => {
+    const payload = { ...orderData, status: 'DRAFT' };
+    return api.post('/orders', payload);
+  },
+
+  // Xóa đơn nháp (khi đã nạp vào giỏ hoặc hủy)
+  delete: async (id: number | string) => {
+    return api.delete(`/orders/${id}`);
+  }
 };

@@ -10,9 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// Log request để debug (Giữ lại để theo dõi)
 app.use((req, res, next) => {
-    console.log(`[DEBUG] Request received: ${req.method} ${req.originalUrl}`);
     next();
 });
 
