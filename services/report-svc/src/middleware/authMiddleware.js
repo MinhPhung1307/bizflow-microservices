@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import database from '../config/db.js'; // <-- Đã sửa đường dẫn cho đúng cấu trúc
+import database from '../config/db.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

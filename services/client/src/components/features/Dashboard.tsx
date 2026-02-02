@@ -16,25 +16,25 @@ export const Dashboard = () => {
     // Doanh thu
     const { data: revenueData, isLoading: loadRevenue } = useQuery({
         queryKey: ['dashboard-revenue'],
-        queryFn: reportService.getDailyRevenue,
-    });
+        queryFn: reportService.owner.getDailyRevenue,
+    }); 
 
     // Công nợ
     const { data: debtData, isLoading: loadDebt } = useQuery({
         queryKey: ['dashboard-debt'],
-        queryFn: reportService.getDebtStats,
+        queryFn: reportService.owner.getDebtStats,
     });
 
     // Tồn kho
     const { data: lowStockData, isLoading: loadStock } = useQuery({
         queryKey: ['dashboard-low-stock'],
-        queryFn: reportService.getLowStock,
+        queryFn: reportService.owner.getLowStock,
     });
 
     // Hoạt động gần đây
     const { data: recentActivities, isLoading: loadActivities } = useQuery({
         queryKey: ['dashboard-recent'],
-        queryFn: () => reportService.getRecentActivities(5),
+        queryFn: () => reportService.owner.getRecentActivities(5),
     });
 
     // Hàm hiển thị tóm tắt hàng tồn kho
