@@ -331,3 +331,17 @@ export const sendFeedback = async (req, res) => {
         res.status(500).json({ message: "Lỗi gửi phản hồi" });
     }
 };
+
+export const getMyFeedbacks = async (req, res) => {
+    const userId = req.user.id;
+    try {
+        const result = await db.query(
+            'SELECT * FROM feedbacks WHERE user_id = $1 ORDER BY created_at DESC',
+            [userId]
+        );
+        res.status(200).json(result.rows);
+    } catch (error) {
+        console.error('Error in getMyFeedbacks:', error);
+        res.status(500).json({ message: "Lỗi khi lấy danh sách phản hồi" });
+    }
+};

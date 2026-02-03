@@ -73,4 +73,10 @@ export const ownerService = {
         const response = await api.post('/owner/feedbacks', data);
         return response.data;
     },
+
+    // Lấy lịch sử feedback của chính mình
+    getMyFeedbacks: async () => {
+        const response = await api.get('/owner/feedbacks');
+        return response.data;
+    },
 };

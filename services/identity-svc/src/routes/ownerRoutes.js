@@ -20,5 +20,6 @@ router.delete('/audit-logs/:id', OwnerController.deleteAuditLog);
 
 // Route gửi phản hồi
 router.post('/feedbacks', OwnerController.sendFeedback);
+router.get('/feedbacks', OwnerController.getMyFeedbacks);
 
 export default router;
