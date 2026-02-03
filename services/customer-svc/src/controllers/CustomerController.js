@@ -3,7 +3,7 @@ import database from '../config/db.js';
 // 1. Lấy danh sách khách hàng
 export const getCustomers = async (req, res) => {
     try {
-        const owner_id = req.user.userId;
+        const owner_id = req.user.ownerId || req.user.userId;
         const { search } = req.query;
 
         // SQL: Sửa tên bảng thành 'customer' (số ít)
@@ -39,7 +39,7 @@ export const getCustomers = async (req, res) => {
 // 2. Tạo khách hàng mới
 export const createCustomer = async (req, res) => {
     try {
-        const owner_id = req.user.userId;
+        const owner_id = req.user.ownerId || req.user.userId;
         // Frontend gửi lên full_name, ta map nó vào biến này
         const { full_name, phone_number, address } = req.body;
 
@@ -81,7 +81,7 @@ export const createCustomer = async (req, res) => {
 export const updateCustomer = async (req, res) => {
     try {
         const { id } = req.params;
-        const owner_id = req.user.userId;
+        const owner_id = req.user.ownerId || req.user.userId;
         const { full_name, phone_number, address } = req.body;
 
         // UPDATE bảng 'customer'

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCart } from '@/hooks/useCart';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { customerService } from '@/services/customer.service';
@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Trash2, User, CreditCard, Banknote, Search, Plus, Package, FileText, Save } from 'lucide-react'; 
 import { toast } from 'sonner';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 
 interface CartSectionProps {
     selectedCustomer: any;
@@ -18,11 +19,16 @@ interface CartSectionProps {
 }
 
 export default function CartSection() {
-  const { items, removeFromCart, updateQuantity, clearCart, total } = useCart();
+  const { items, removeFromCart, updateQuantity, clearCart } = useCart();
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [customerSearch, setCustomerSearch] = useState('');
   const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
   const queryClient = useQueryClient();
+  const [isCreateCustomerOpen, setIsCreateCustomerOpen] = useState(false);
+
+  const cartTotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  }, [items]);
 
   // --- QUERY: Tìm kiếm khách hàng ---
   const { data: customers = [] } = useQuery({
@@ -30,6 +36,36 @@ export default function CartSection() {
     queryFn: () => customerService.getCustomers(customerSearch),
     enabled: isCustomerModalOpen,
   });
+
+  const createCustomerMutation = useMutation({
+    mutationFn: customerService.createCustomer,
+    onSuccess: (response: any) => {
+        // 1. Refresh lại cache
+        queryClient.invalidateQueries({ queryKey: ['customers'] });
+        
+        // 2. Tự động chọn khách hàng vừa tạo
+        const createdCustomer = response.data || response;
+        setSelectedCustomer(createdCustomer);
+        
+        // 3. Đóng các Modal
+        setIsCreateCustomerOpen(false);
+        setIsCustomerModalOpen(false);
+        
+        toast.success(`Đã thêm khách hàng: ${createdCustomer.full_name}`);
+    },
+    onError: () => toast.error('Lỗi khi thêm khách hàng')
+  });
+
+  // Hàm xử lý submit form tạo khách hàng
+  const handleCreateCustomerSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    createCustomerMutation.mutate({
+      full_name: formData.get('full_name') as string,
+      phone_number: formData.get('phone_number') as string,
+      address: formData.get('address') as string,
+    });
+  };
 
   // --- FUNCTION: Xử lý in hóa đơn ---
   const handlePrintInvoice = (orderData: any) => {
@@ -54,7 +90,7 @@ export default function CartSection() {
             </div>
           `).join('')}
           <hr/>
-          <h3 style="text-align: right">Tổng: ${total().toLocaleString()} đ</h3>
+          <h3 style="text-align: right">Tổng: ${cartTotal.toLocaleString()} đ</h3>
         </body>
       </html>
     `;
@@ -79,8 +115,10 @@ export default function CartSection() {
              handlePrintInvoice(data);
         }
         
+        queryClient.resetQueries({ queryKey: ['products'] });
         clearCart();
         setSelectedCustomer(null);
+        queryClient.invalidateQueries({ queryKey: ['orders'] });
         queryClient.invalidateQueries({ queryKey: ['products'] });
     },
     onError: (error: any) => {
@@ -108,7 +146,7 @@ export default function CartSection() {
         // if (selectedCustomer.total_debt + total() > selectedCustomer.credit_limit) { ... }
     }
 
-    const currentTotal = total();
+    const currentTotal = cartTotal;
 
     const payload = {
       customer_id: selectedCustomer?.id || null,
@@ -141,17 +179,20 @@ export default function CartSection() {
         return;
     }
 
+    const customerName = selectedCustomer ? selectedCustomer.full_name : 'Khách lẻ';
+
     const payload = {
         customer_id: selectedCustomer?.id || null,
-        customer_name: selectedCustomer?.full_name || 'Khách lẻ (Lưu nháp)',
+        customer_name: customerName,
         items: items.map(item => ({
           product_id: item.id,
           quantity: item.quantity,
-          price: item.price
+          price: item.price,
+          uom_id: item.uom_id || null
         })),
         payment_method: 'cash', 
         is_debt: false,
-        total_price: total(),
+        total_price: cartTotal,
         status: 'draft',
         amount_paid: 0
     };
@@ -196,6 +237,38 @@ export default function CartSection() {
                     onChange={(e) => setCustomerSearch(e.target.value)}
                   />
                 </div>
+
+                <Dialog open={isCreateCustomerOpen} onOpenChange={setIsCreateCustomerOpen}>
+                        <DialogTrigger asChild>
+                             <Button variant="default"><Plus size={18} />Thêm khách hàng</Button>
+                        </DialogTrigger>
+                        {/* FORM TẠO KHÁCH HÀNG (Tái sử dụng code từ CustomerManager) */}
+                        <DialogContent className="z-[9999]"> {/* z-index cao để đè lên modal tìm kiếm */}
+                            <DialogHeader>
+                                <DialogTitle>Thêm Khách Hàng Mới</DialogTitle>
+                            </DialogHeader>
+                            <form onSubmit={handleCreateCustomerSubmit} className="space-y-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="full_name">Họ và tên</Label>
+                                    <Input id="full_name" name="full_name" required placeholder="Nguyễn Văn A" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="phone_number">Số điện thoại</Label>
+                                    <Input id="phone_number" name="phone_number" required placeholder="09xxxxxxx" />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="address">Địa chỉ</Label>
+                                    <Input id="address" name="address" placeholder="Địa chỉ..." />
+                                </div>
+                                <DialogFooter>
+                                    <Button type="submit" disabled={createCustomerMutation.isPending}>
+                                        {createCustomerMutation.isPending ? 'Đang lưu...' : 'Lưu Khách Hàng'}
+                                    </Button>
+                                </DialogFooter>
+                            </form>
+                        </DialogContent>
+                    </Dialog>
+                
                 <ScrollArea className="h-[300px] border rounded-md">
                   {customers.length === 0 ? (
                     <div className="p-4 text-center text-sm text-gray-500">Không tìm thấy khách hàng.</div>
@@ -280,7 +353,8 @@ export default function CartSection() {
         {/* Total info */}
         <div className="flex justify-between text-lg font-bold">
             <span>Tổng cộng:</span>
-            <span className="text-primary">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(total())}</span>
+            <span className="text-primary">
+              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(cartTotal)}</span>
         </div>
 
         <div className="grid grid-cols-2 gap-2">

@@ -1,7 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Search, Package, Plus, ShoppingCart, Minus, Trash2, Users, Printer, X } from 'lucide-react';
+import { Search, Package, Plus, ShoppingCart, Minus, Trash2, Users, Printer, X, LogOut } from 'lucide-react';
+import { authService } from '@/services/auth.service';
+import { useRouter } from 'next/navigation';
 import { PRODUCTS } from '@/lib/constants';
 import { formatCurrency, cn } from '@/lib/utils';
 
@@ -24,6 +26,15 @@ export const POS = ({ addToCart, cart, updateQuantity, removeFromCart, checkout,
     (selectedCategory === 'All' || p.category === selectedCategory)
   );
 
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi hệ thống POS?')) {
+      await authService.logout();
+      router.push('/login'); // Chuyển hướng về trang đăng nhập
+    }
+  };
+
   const categories = ['All', ...Array.from(new Set(PRODUCTS.map(p => p.category)))];
   const cartTotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
   const cartItemCount = cart.reduce((acc, item) => acc + item.qty, 0);
@@ -33,31 +44,32 @@ export const POS = ({ addToCart, cart, updateQuantity, removeFromCart, checkout,
       <div className="flex-1 flex flex-col h-full bg-slate-50">
         <div className="p-4 bg-white border-b border-slate-200 shadow-sm z-10">
             <div className="flex flex-col sm:flex-row gap-3">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} />
-                    <input 
-                        type="text"
-                        placeholder="Tìm sản phẩm (Tên, Mã)..."
-                        className="w-full pl-10 pr-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
-                <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-                    {categories.map(cat => (
-                        <button
-                        key={cat}
-                        onClick={() => setSelectedCategory(cat)}
-                        className={cn(
-                            "px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors border",
-                            selectedCategory === cat 
-                            ? 'bg-blue-600 text-white border-blue-600' 
-                            : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
-                        )}
-                        >
-                        {cat === 'All' ? 'Tất cả' : cat}
-                        </button>
-                    ))}
+                <div className="flex gap-2 items-center">
+                    <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide flex-1">
+                        {categories.map(cat => (
+                            <button
+                                key={cat}
+                                onClick={() => setSelectedCategory(cat)}
+                                className={cn(
+                                    "px-4 py-2 rounded-lg whitespace-nowrap text-sm font-medium transition-colors border",
+                                    selectedCategory === cat 
+                                    ? 'bg-blue-600 text-white border-blue-600' 
+                                    : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50'
+                                )}
+                            >
+                                {cat === 'All' ? 'Tất cả' : cat}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* NÚT ĐĂNG XUẤT */}
+                    <button 
+                        onClick={handleLogout}
+                        className="p-2.5 rounded-lg border border-red-100 text-red-500 hover:bg-red-50 transition-colors flex items-center justify-center shrink-0"
+                        title="Đăng xuất"
+                    >
+                        <LogOut size={20} />
+                    </button>
                 </div>
             </div>
         </div>

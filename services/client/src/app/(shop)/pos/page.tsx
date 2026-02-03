@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // [Mới] Import router
+import { useRouter } from 'next/navigation'; // Import router
 import ProductGrid from '@/components/features/pos/ProductGrid';
 import CartSection from '@/components/features/pos/CartSection';
 import AIOrderDialog from '@/components/features/pos/AIOrderDialog';
@@ -9,20 +9,33 @@ import { orderService } from '@/services/order.service';
 import DraftOrderList from '@/components/features/pos/DraftOrderList';
 import { productService } from '@/services/product.service';
 import { useCart } from '@/hooks/useCart';
-import { useUserStore } from '@/hooks/useUserStore'; // [Mới] Import user store
-import { Button } from '@/components/ui/button'; // [Mới]
+import { useUserStore } from '@/hooks/useUserStore'; // Import user store
+import { Button } from '@/components/ui/button'; //
 import { toast } from 'sonner';
-import { FileText, ChevronLeft, LayoutDashboard } from 'lucide-react'; // [Mới] Icons
+import { FileText, ChevronLeft, LayoutDashboard, LogOut} from 'lucide-react'; 
+import { authService } from '@/services/auth.service';
 
 export default function POSPage() {
   const router = useRouter();
-  const { user } = useUserStore(); // [Mới] Lấy thông tin user
+  const { user } = useUserStore(); // Lấy thông tin user
   
   const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isDraftModalOpen, setIsDraftModalOpen] = useState(false);
   const [draftOrders, setDraftOrders] = useState<any[]>([]); 
   
   const { addToCart, setCart, clearCart, items } = useCart(); 
+
+  const handleLogout = async () => {
+    // Hỏi xác nhận để tránh bấm nhầm làm mất đơn hàng đang soạn
+    if (window.confirm('Bạn có chắc chắn muốn đăng xuất? Giỏ hàng hiện tại có thể bị mất nếu chưa lưu nháp.')) {
+      try {
+        await authService.logout(); // Gọi service xóa token/session
+        router.push('/login');      // Chuyển hướng về trang đăng nhập
+      } catch (error) {
+        toast.error('Lỗi khi đăng xuất');
+      }
+    }
+  };
 
   const fetchDrafts = async () => {
     try {
@@ -167,8 +180,8 @@ export default function POSPage() {
         
         {/* [Mới] HEADER: Nút quay lại & Tiêu đề */}
         <div className="h-14 border-b bg-white flex items-center px-4 justify-between shrink-0 shadow-sm z-10">
+            {/* Phần bên trái: Nút Dashboard & Tiêu đề */}
             <div className="flex items-center gap-2">
-                {/* Chỉ hiện nút Dashboard nếu là OWNER */}
                 {user?.role === 'OWNER' && (
                     <Button 
                         variant="ghost" 
@@ -183,6 +196,18 @@ export default function POSPage() {
                 )}
                 <h1 className="font-bold text-lg text-slate-800">Bán hàng tại quầy</h1>
             </div>
+
+            {/* [4] PHẦN BÊN PHẢI: NÚT ĐĂNG XUẤT */}
+            <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleLogout}
+                className="text-red-500 hover:text-red-600 hover:bg-red-50 flex items-center gap-2"
+                title="Đăng xuất khỏi hệ thống"
+            >
+                <LogOut size={18} />
+                <span className="hidden sm:inline">Đăng xuất</span>
+            </Button>
         </div>
 
         {/* COMPONENT GRID */}

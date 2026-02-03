@@ -100,11 +100,11 @@ export default function ProductGrid() {
                     <div className="pl-2 pr-1 flex items-end justify-between mt-auto">
                         <div>
                             <div className="text-indigo-700 font-bold text-lg leading-none">
-                                {new Intl.NumberFormat('vi-VN').format(product.price_sales || 0)}
+                                {new Intl.NumberFormat('vi-VN').format(product.price || product.price_sales || 0)}
                                 <span className="text-xs font-normal text-slate-500 ml-0.5">đ</span>
                             </div>
                             <div className="text-[10px] text-slate-500 mt-1">
-                                Đơn vị: {product.uom_name || 'Cái'}
+                                Đơn vị: {product.unit || 'Cái'}
                             </div>
                         </div>
 

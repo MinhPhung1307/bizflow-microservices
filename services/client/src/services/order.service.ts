@@ -20,13 +20,13 @@ export const orderService = {
   },
 
   getDrafts: async () => {
-    const response = await api.get('/orders?status=DRAFT'); 
+    const response = await api.get('/orders?status=draft'); 
     return (response.data as any).data || response.data;
   },
 
   // Tạo đơn nháp
   createDraft: async (orderData: any) => {
-    const payload = { ...orderData, status: 'DRAFT' };
+    const payload = { ...orderData, status: 'draft' };
     return api.post('/orders', payload);
   },
 

@@ -43,10 +43,10 @@ export const useCart = create<CartState>()(
               {
                 id: product.id,
                 name: product.name,
-                price: Number(product.price_sales) || 0, // Đảm bảo giá là số
+                price: Number(product.price_sales || product.price) || 0, // Đảm bảo giá là số
                 quantity: 1,
                 uom_id: product.uom_id,
-                uom_name: product.uom_name,
+                uom_name: product.uom_name || product.unit,
                 image: product.image_url
               },
             ],

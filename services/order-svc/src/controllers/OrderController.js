@@ -9,7 +9,7 @@ export const createOrder = async (req, res) => {
         const { items, total_amount, customer_id, is_debt, amount_paid, customer_name, payment_method, status } = req.body;
         
         const userId = req.user?.userId; 
-        const ownerId = req.user?.owner_id || req.user?.userId;
+        const ownerId = req.user?.ownerId || req.user?.userId;
         const userName = req.user?.full_name || 'Staff';
 
         // Mặc định status là 'completed' nếu không gửi lên
@@ -90,7 +90,7 @@ export const createOrder = async (req, res) => {
 
         res.status(201).json({ 
             success: true, 
-            message: orderStatus === 'DRAFT' ? "Lưu nháp thành công!" : "Tạo đơn hàng thành công!", 
+            message: orderStatus === 'draft' ? "Lưu nháp thành công!" : "Tạo đơn hàng thành công!", 
             orderId 
         });
 
@@ -105,7 +105,7 @@ export const createOrder = async (req, res) => {
 
 export const getAllOrders = async (req, res) => {
     try {
-        const ownerId = req.user.owner_id || req.user.userId;
+        const ownerId = req.user.ownerId || req.user.userId;
         const { status } = req.query; // Lấy filter status từ query param
 
         let query = `
@@ -128,7 +128,7 @@ export const getAllOrders = async (req, res) => {
         const result = await db.query(query, params);
         
         // Nếu là lấy DRAFT, ta cần lấy thêm chi tiết items để POS có thể restore lại giỏ hàng
-        if (status === 'DRAFT' && result.rows.length > 0) {
+        if (status === 'draft' && result.rows.length > 0) {
             for (let order of result.rows) {
                 // Chỉ lấy product_id, quantity, price từ bảng order_item của database này
                 const itemsRes = await db.query(
@@ -148,12 +148,12 @@ export const getAllOrders = async (req, res) => {
     }
 };
 
-// --- HÀM MỚI: Xóa đơn hàng (Dùng cho xóa nháp) ---
+// --- Xóa đơn hàng (Dùng cho xóa nháp) ---
 export const deleteOrder = async (req, res) => {
     const client = await db.connect();
     try {
         const { id } = req.params;
-        const ownerId = req.user.owner_id || req.user.userId;
+        const ownerId = req.user.ownerId || req.user.userId;
 
         await client.query('BEGIN');
 
@@ -167,7 +167,7 @@ export const deleteOrder = async (req, res) => {
         }
 
         // Chỉ cho phép xóa đơn nháp để an toàn
-        if (checkRes.rows[0].status !== 'DRAFT') {
+        if (checkRes.rows[0].status !== 'draft') {
             await client.query('ROLLBACK');
             return res.status(400).json({ success: false, message: "Chỉ được xóa đơn nháp" });
         }
