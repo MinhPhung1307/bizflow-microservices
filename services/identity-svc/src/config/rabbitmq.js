@@ -3,7 +3,11 @@ import db from '../config/db.js';
 
 export const initLogConsumer = async () => {
     try {
-        const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://admin:123456@bizflow-mq:5672');
+        const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://admin:123456@bizflow-mq:5672', {
+            clientProperties: {
+                connection_name: `BizFlow_${process.env.SERVICE_NAME || 'UnknownService'}`
+            }
+        });
         // Tự động kết nối lại khi RabbitMQ lỗi
         connection.on("error", (err) => {
             console.error("Lỗi kết nối RabbitMQ, đang thử lại...");

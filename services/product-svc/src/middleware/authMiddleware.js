@@ -15,6 +15,7 @@ export const verifyToken = (req, res, next) => {
         // 3. Đưa thông tin user vào request để các controller sử dụng
         req.user = {
             id: decoded.userId,
+            owner_id: decoded.ownerId,
             role: decoded.role
         };
         next();

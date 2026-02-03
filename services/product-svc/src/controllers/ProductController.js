@@ -3,7 +3,7 @@ import { getChannel } from '../config/rabbitmq.js';
 
 export const getAllProducts = async (req, res) => {
   try {
-    const owner_id = req.user.id; 
+    const owner_id = req.user.owner_id ? req.user.owner_id : req.user.id;
     
     const result = await db.query(
       'SELECT * FROM product WHERE owner_id = $1 ORDER BY created_at DESC',

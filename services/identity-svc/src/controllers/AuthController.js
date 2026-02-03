@@ -138,6 +138,14 @@ export const login = async (req, res) => {
                 });
             }
 
+            if (user.status === 'REJECTED') {
+                return res.status(403).json({ 
+                    success: false,
+                    message: `Tài khoản của bạn đã bị từ chối. Vui lòng liên hệ hỗ trợ kỹ thuật qua email: ${systemConfig.support_email} để biết thêm chi tiết.`,
+                    status: 'REJECTED' 
+                });
+            }
+
             // Trường hợp 3: Các trạng thái khác (nếu có)
             return res.status(403).json({ 
                 success: false,
