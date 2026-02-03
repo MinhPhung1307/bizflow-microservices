@@ -27,7 +27,7 @@ export interface Product {
   category?: string;
   quantity: number; // Số lượng dùng khi nhập kho
   importPrice: number; // Giá nhập dùng khi nhập kho
-  uomId?: number; // Đơn vị tính
+  uomId?: string; // Đơn vị tính
   supplier?: string; // Nhà cung cấp dùng khi nhập kho
   price: number; // DECIMAL(19,2)
   selling_price?: number; // Giá bán lẻ

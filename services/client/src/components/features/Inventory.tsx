@@ -694,8 +694,8 @@ export const InventoryManager = () => {
                                                             if (!val) return;
 
                                                             // Tìm tên đơn vị dựa trên ID đã chọn (từ globalUoms hoặc productUoms)
-                                                            const selectedUom = globalUoms.find((u: any) => u.id === Number(val)) || 
-                                                                                productUoms.find((u: any) => u.uom_id === Number(val));
+                                                            const selectedUom = globalUoms?.find((u: any) => u.id === val) || 
+                                                                                productUoms?.find((u: any) => u.uom_id === val);
                                                             
                                                             const uomName = selectedUom?.uom_name || "";
                                                             
@@ -703,7 +703,7 @@ export const InventoryManager = () => {
 
                                                             setFormData({
                                                                 ...formData,
-                                                                uomId: Number(val),
+                                                                uomId: val,
                                                                 newUomName: uomName,
                                                                 // Nếu tìm thấy mapping, tự điền base và factor. Nếu không, giữ giá trị cũ.
                                                                 unit: mapping ? mapping.base : formData.unit,
