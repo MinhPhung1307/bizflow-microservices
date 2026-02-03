@@ -6,6 +6,7 @@ import client from 'prom-client'; // 1. Import thư viện prometheus
 import { initTables } from './models/index.js';
 import productRoutes from './routes/productRoutes.js';
 import { connectRabbitMQ } from './config/rabbitmq.js';
+import { startOrderCreatedConsumer } from './consumers/OrderCreatedConsumer.js';
 
 dotenv.config();
 
@@ -52,6 +53,10 @@ app.listen(PORT, async () => {
   
   // Khởi chạy RabbitMQ (Sử dụng .then/.catch để không làm treo server)
   connectRabbitMQ()
-    .then(() => console.log("RabbitMQ connected for Product Service"))
-    .catch(err => console.error("RabbitMQ Connection Error:", err.message));
+    .then(async () => {
+        console.log("✅ RabbitMQ connected");
+        // Kích hoạt lắng nghe sự kiện tạo đơn
+        await startOrderCreatedConsumer();
+    })
+    .catch(err => console.error("❌ RabbitMQ Error:", err.message));
 });

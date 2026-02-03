@@ -99,11 +99,14 @@ async def parse_order_with_rag(message: str, owner_id: str) -> DraftOrderRespons
             customer_name=None, items=[], is_debt=False, original_message=message
         )
 
-@app.post("/api/parse-order", response_model=DraftOrderResponse)
+@app.post("/api/parse-order")
 async def parse_order(request: NaturalLanguageOrderRequest):
     print(f"📩 Parse Order cho Owner {request.owner_id}: {request.message}")
     result = await parse_order_with_rag(request.message, request.owner_id)
-    return result
+    return {
+        "success": True,
+        "data": result
+    }
 
 @app.post("/api/orders/ai/transcribe")
 async def transcribe_audio(audio: UploadFile = File(...)):

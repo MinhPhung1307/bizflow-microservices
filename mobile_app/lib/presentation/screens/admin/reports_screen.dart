@@ -172,11 +172,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
     return Column(
       children: [
-        _buildStatTile("Tiền mặt", getValue("CASH"), Icons.money, Colors.green),
+        _buildStatTile("Tiền mặt", getValue("cash"), Icons.money, Colors.green),
         const SizedBox(height: 10),
-        _buildStatTile("Chuyển khoản", getValue("TRANSFER"), Icons.credit_card, Colors.blue),
+        _buildStatTile("Chuyển khoản", getValue("transfer"), Icons.credit_card, Colors.blue),
         const SizedBox(height: 10),
-        _buildStatTile("Ghi nợ", getValue("DEBT"), Icons.account_balance_wallet, Colors.red),
+        _buildStatTile("Ghi nợ", getValue("debt"), Icons.account_balance_wallet, Colors.red),
       ],
     );
   }

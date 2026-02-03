@@ -51,7 +51,7 @@ export default function POSPage() {
                 price: i.price,
                 uom_id: null 
             })),
-            payment_method: 'CASH',
+            payment_method: 'cash',
             total_price: total,
             status: 'DRAFT'
         };

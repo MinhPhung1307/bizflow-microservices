@@ -88,13 +88,13 @@ export default function CartSection() {
     }
   });
 
-  const handleCheckout = (paymentMethod: 'CASH' | 'TRANSFER' | 'DEBT') => {
+  const handleCheckout = (paymentMethod: 'cash' | 'transfer' | 'debt') => {
     if (items.length === 0) {
       toast.error('Giỏ hàng trống');
       return;
     }
 
-    if (paymentMethod === 'DEBT') {
+    if (paymentMethod === 'debt') {
         if (!selectedCustomer) {
             toast.error('Cảnh báo nợ xấu!', { 
                 description: 'Vui lòng chọn khách hàng cụ thể để ghi nợ.' 
@@ -125,10 +125,10 @@ export default function CartSection() {
       // Các trường bắt buộc theo TypeScript Type
       order_type: 'AT_COUNTER', // Loại đơn tại quầy
       status: 'completed',      // Trạng thái hoàn thành ngay
-      is_debt: paymentMethod === 'DEBT', // Có nợ hay không
+      is_debt: paymentMethod === 'debt', // Có nợ hay không
       total_price: currentTotal,
       tax_price: 0,            // Tạm thời để 0
-      amount_paid: paymentMethod === 'DEBT' ? 0 : currentTotal // Nếu nợ thì trả 0, còn lại trả đủ
+      amount_paid: paymentMethod === 'debt' ? 0 : currentTotal // Nếu nợ thì trả 0, còn lại trả đủ
     };
 
     // @ts-ignore - Bỏ qua check type nếu còn sót field nhỏ không quan trọng
@@ -149,7 +149,7 @@ export default function CartSection() {
           quantity: item.quantity,
           price: item.price
         })),
-        payment_method: 'CASH', 
+        payment_method: 'cash', 
         is_debt: false,
         total_price: total(),
         status: 'draft',
@@ -298,7 +298,7 @@ export default function CartSection() {
             id="btn-pay-cash" 
             className="bg-green-600 hover:bg-green-700" 
             disabled={createOrderMutation.isPending || items.length === 0}
-            onClick={() => handleCheckout('CASH')}
+            onClick={() => handleCheckout('cash')}
           >
             <Banknote className="mr-2 h-4 w-4" /> Tiền Mặt (F4)
           </Button>
@@ -306,7 +306,7 @@ export default function CartSection() {
           <Button 
             className="bg-blue-600 hover:bg-blue-700"
             disabled={createOrderMutation.isPending || items.length === 0}
-            onClick={() => handleCheckout('TRANSFER')}
+            onClick={() => handleCheckout('transfer')}
           >
             <CreditCard className="mr-2 h-4 w-4" /> Chuyển Khoản
           </Button>
@@ -315,7 +315,7 @@ export default function CartSection() {
             variant="outline" 
             className="col-span-2 border-red-200 text-red-600 hover:bg-red-50"
             disabled={createOrderMutation.isPending || items.length === 0}
-            onClick={() => handleCheckout('DEBT')}
+            onClick={() => handleCheckout('debt')}
           >
             Ghi Nợ
           </Button>

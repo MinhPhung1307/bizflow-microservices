@@ -45,7 +45,7 @@ export interface CreateOrderPayload {
   customer_id?: string | null; // Có thể null
   customer_name?: string; // Lưu tên khách vãng lai
   order_type: "AT_COUNTER" | "PHONE_ZALO";
-  payment_method: "CASH" | "TRANSFER" | "DEBT";
+  payment_method: "cash" | "transfer" | "debt";
   status: "pending" | "completed" | "canceled" | "draft";
   is_debt: boolean;
   total_price: number;
@@ -67,7 +67,7 @@ export interface Order {
   id: string;
   customer_name: string;
   total_price: number; // Lưu ý: Database trả về string cho kiểu DECIMAL, cần ép kiểu hoặc xử lý
-  payment_method: "CASH" | "TRANSFER" | "DEBT";
+  payment_method: "cash" | "transfer" | "debt";
   order_type: "AT_COUNTER" | "PHONE_ZALO";
   status: "pending" | "completed" | "canceled" | "draft";
   created_at: string;
