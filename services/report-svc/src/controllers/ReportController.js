@@ -1,5 +1,4 @@
 // src/controllers/ReportController.js
-import ReportModel from '../models/ReportModel.js';
 import database from '../config/db.js';
 
 class ReportController {
@@ -317,34 +316,7 @@ class ReportController {
             res.status(500).json({ message: "Lỗi lấy đơn hàng gần đây" });
         }
     }
-
-    // Top sản phẩm bán chạy
-    static async getBestSellers(req, res) {
-        try {
-            const ownerId = req.user.userId;
-            const data = await ReportModel.getTopSellingProducts(ownerId);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: error.message });
-        }
-    }
-
-    // Sổ cái kế toán (Thông tư 88)
-    static async getAccountingLedger(req, res) {
-        try {
-            const ownerId = req.user.userId;
-            const { month, year } = req.query; 
-            
-            if (!month || !year) {
-                return res.status(400).json({ message: "Vui lòng cung cấp tháng và năm (?month=1&year=2026)" });
-            }
-
-            const data = await ReportModel.getAccountingLedger(ownerId, month, year);
-            return res.status(200).json({ success: true, data });
-        } catch (error) {
-            return res.status(500).json({ success: false, message: error.message });
-        }
-    }
+    
 }
 
 export default ReportController;

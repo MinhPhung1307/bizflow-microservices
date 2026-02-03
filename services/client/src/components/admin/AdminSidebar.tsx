@@ -8,23 +8,39 @@ import {
   Settings, 
   FileBarChart, 
   CreditCard, 
-  LogOut 
+  LogOut,
+  MessageSquare 
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { authService } from '@/services/auth.service';
 import { useRouter } from 'next/navigation';
-
-const menuItems = [
-  { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
-  { href: '/admin/account-owner', label: 'Quản lý Chủ shop', icon: Users },
-  { href: '/admin/subscription-plans', label: 'Gói dịch vụ', icon: CreditCard },
-  { href: '/admin/reports-analytics', label: 'Báo cáo & Phân tích', icon: FileBarChart },
-  { href: '/admin/system-config', label: 'Cấu hình hệ thống', icon: Settings },
-];
+import { useQuery } from '@tanstack/react-query';
+import { authService } from '@/services/auth.service';
+import { adminService } from '@/services/admin.service';
 
 export const AdminSidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
+
+  // Lấy số lượng phản hồi chưa xử lý
+  const { data: feedbackData } = useQuery({
+    queryKey: ['admin', 'feedback-count'],
+    queryFn: () => adminService.getPendingFeedbackCount(),
+    refetchInterval: 30000, // Tự động làm mới mỗi 30 giây
+  });
+
+  const menuItems = [
+    { href: '/admin', label: 'Tổng quan', icon: LayoutDashboard },
+    { href: '/admin/account-owner', label: 'Quản lý Chủ shop', icon: Users },
+    { href: '/admin/subscription-plans', label: 'Gói dịch vụ', icon: CreditCard },
+    { 
+      href: '/admin/feedbacks', 
+      label: 'Phản hồi', 
+      icon: MessageSquare,
+      badge: feedbackData?.count > 0 ? feedbackData.count : null
+    },
+    { href: '/admin/reports-analytics', label: 'Báo cáo & Phân tích', icon: FileBarChart },
+    { href: '/admin/system-config', label: 'Cấu hình hệ thống', icon: Settings },
+  ];
 
   const handleLogout = async () => {
       await authService.logout();
@@ -55,6 +71,11 @@ export const AdminSidebar = () => {
             >
               <item.icon size={20} className={isActive ? "text-white" : "text-slate-400 group-hover:text-white"} />
               <span className="font-medium text-sm">{item.label}</span>
+              {item.badge && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white group-hover:animate-pulse">
+                  {item.badge > 9 ? '9+' : item.badge}
+                </span>
+              )}
             </Link>
           );
         })}

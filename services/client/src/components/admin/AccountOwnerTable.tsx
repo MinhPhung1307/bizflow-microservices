@@ -209,7 +209,7 @@ const openPlanDialog = (owner: any) => {
                 <th className="px-6 py-3 text-center">Trạng thái</th>
               )}
 
-              <th className="px-6 py-3 text-right">Hành động</th>
+              <th className="px-6 py-3 text-center">Hành động</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -289,7 +289,7 @@ const openPlanDialog = (owner: any) => {
                                 </div>
                             ) : statusFilter === 'REJECTED' ? (
                                 // CHỈ HIỆN NÚT CHECK TRONG TAB TỪ CHỐI
-                                <div className="flex justify-end">
+                                <div className="flex justify-center">
                                     <Button 
                                       size="sm" 
                                       className="bg-green-600 hover:bg-green-700 h-8 w-8 p-0"

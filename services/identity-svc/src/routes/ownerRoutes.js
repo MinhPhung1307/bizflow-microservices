@@ -18,4 +18,7 @@ router.get('/audit-logs', OwnerController.getAuditLogs);
 router.delete('/audit-logs/clear', OwnerController.clearAuditLogs);
 router.delete('/audit-logs/:id', OwnerController.deleteAuditLog);
 
+// Route gửi phản hồi
+router.post('/feedbacks', OwnerController.sendFeedback);
+
 export default router;

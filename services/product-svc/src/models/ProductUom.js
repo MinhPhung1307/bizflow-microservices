@@ -1,8 +1,8 @@
 export const ProductUomModel = `
     CREATE TABLE IF NOT EXISTS product_uom (
-        id SERIAL PRIMARY KEY,
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         product_id UUID REFERENCES product(id) ON DELETE CASCADE,
-        uom_id INTEGER REFERENCES uom(id),
+        uom_id UUID REFERENCES uom(id) ON DELETE CASCADE,
         conversion_factor DECIMAL(10, 2) NOT NULL, -- 1 đơn vị này = bao nhiêu đơn vị cơ sở?
         is_base_unit BOOLEAN DEFAULT false, -- Có phải đơn vị nhỏ nhất để tính kho không?
         selling_price DECIMAL(15, 2), -- Giá bán riêng cho đơn vị này (ví dụ mua cả tấn rẻ hơn mua lẻ kg)

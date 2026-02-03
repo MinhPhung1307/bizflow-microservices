@@ -6,6 +6,7 @@ import { UserApprovalModel } from './UserApproval.js';
 import { SubscriptionPlanModel } from './SubscriptionPlan.js';
 import { AuditLogModel } from './AuditLog.js';
 import { SystemConfigModel } from './SystemConfig.js';
+import { FeedbackModel } from './Feedback.js';
 
 const initAdmin = async () => {
 
@@ -56,7 +57,9 @@ export const initTables = async () => {
     // 3. Các bảng phụ thuộc vào bảng con (Approvals cần Users)
     await pool.query(UserApprovalModel);
     await pool.query(AuditLogModel);
-
+    await pool.query(FeedbackModel);
+    
+    // 4. Khởi tạo tài khoản Admin mặc định
     await initAdmin();
 
     console.log("All Identity DB Tables Initialized Successfully.");
