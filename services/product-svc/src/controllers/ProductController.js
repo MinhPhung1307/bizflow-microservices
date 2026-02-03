@@ -265,7 +265,7 @@ export const importStock = async (req, res) => {
         if (isNewProduct || !productId) {
             const insertProductSql = `
                 INSERT INTO product (owner_id, code, name, category, price, stock, unit, created_at)
-                VALUES ($1, $2, $3, $4, $5, 0, $6, NOW())
+                VALUES ($1, $2, $3, $4, $5, 0, $6, NOW(), NOW())
                 RETURNING id;
             `;
             const productRes = await client.query(insertProductSql, [owner_id, code, name, category, price, unit]);
@@ -380,5 +380,22 @@ export const importStock = async (req, res) => {
         res.status(500).json({ success: false, message: 'Lỗi server' });
     } finally {
         client.release();
+    }
+};
+
+// Lấy danh sách đơn vị tính (UoM) của một sản phẩm cụ thể
+export const getProductUoms = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await db.query(
+            `SELECT pu.*, u.uom_name 
+             FROM product_uom pu 
+             JOIN uom u ON pu.uom_id = u.id 
+             WHERE pu.product_id = $1`, 
+            [id]
+        );
+        res.status(200).json({ success: true, data: result.rows });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Lỗi lấy đơn vị sản phẩm' });
     }
 };
