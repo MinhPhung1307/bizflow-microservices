@@ -5,8 +5,11 @@ let connection;
 
 export const connectRabbitMQ = async () => {
     try {
-        const amqpServer = process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5672';
-        connection = await amqp.connect(amqpServer);
+        connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://admin:123456@bizflow-mq:5672', {
+            clientProperties: {
+                connection_name: `BizFlow_${process.env.SERVICE_NAME || 'OrderService'}`
+            }
+        });
         channel = await connection.createChannel();
         
         // Khai báo Exchange loại 'topic' hoặc 'direct' để broadcast event

@@ -5,7 +5,7 @@ export const initLogConsumer = async () => {
     try {
         const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://admin:123456@bizflow-mq:5672', {
             clientProperties: {
-                connection_name: `BizFlow_${process.env.SERVICE_NAME || 'UnknownService'}`
+                connection_name: `BizFlow_${process.env.SERVICE_NAME || 'IdentityService'}`
             }
         });
         // Tự động kết nối lại khi RabbitMQ lỗi

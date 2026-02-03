@@ -5,8 +5,11 @@ let channel = null;
 export const connectRabbitMQ = async () => {
   try {
     // Kết nối đến RabbitMQ (thông tin lấy từ docker-compose: admin/123456)
-    const amqpServer = process.env.RABBITMQ_URL || 'amqp://admin:123456@bizflow-mq:5672';
-    const connection = await amqp.connect(amqpServer);
+    const connection = await amqp.connect(process.env.RABBITMQ_URL || 'amqp://admin:123456@bizflow-mq:5672', {
+        clientProperties: {
+            connection_name: `BizFlow_${process.env.SERVICE_NAME || 'ProductService'}`
+        }
+    });
     
     channel = await connection.createChannel();
     
