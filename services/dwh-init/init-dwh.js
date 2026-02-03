@@ -15,6 +15,7 @@ import { createOrderItemTable } from './models/OrderItem.js';
 import { createProductUomTable } from './models/ProductUom.js';
 import { createStockImportTable } from './models/StockImport.js';
 import { createTempSyncIdsTable } from './models/TempSynsId.js';
+import { createFeedbackTable } from './models/Feedback.js';
 
 const runMigration = async () => {
     console.log("--- Bắt đầu khởi tạo cấu trúc DWH trên Neon ---");
@@ -34,6 +35,7 @@ const runMigration = async () => {
         await createAuditLogTable();
         await createUserApprovalTable();
         await createDraftOrderTable();
+        await createFeedbackTable();
 
         // Thứ tự 4: Các bảng nghiệp vụ kho và tài chính
         await createInventoryTable();

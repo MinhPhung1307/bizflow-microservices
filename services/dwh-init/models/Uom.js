@@ -7,7 +7,7 @@ export const createUomTable = async () => {
         // 1. Tạo bảng uom
         const createTableQuery = `
             CREATE TABLE IF NOT EXISTS uom (
-                id SERIAL PRIMARY KEY,
+                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                 uom_name VARCHAR(50) NOT NULL, -- Ví dụ: 'Tấn', 'Bao'
                 base_unit VARCHAR(50),
                 owner_id UUID, -- Đơn vị này thuộc về hộ kinh doanh nào

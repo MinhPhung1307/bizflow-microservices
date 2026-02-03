@@ -444,67 +444,65 @@ export const updateSystemConfig = async (req, res) => {
     }
 };
 
-// --- PHẦN MỚI THÊM VÀO: API THỐNG KÊ DASHBOARD (ĐỂ SỬA LỖI CRASH) ---
 
-export const getDashboardStats = async (req, res) => {
+// CONTROLLER xử lý feedback
+
+// Lấy danh sách tất cả phản hồi từ người dùng
+export const getAllFeedbacks = async (req, res) => {
     try {
-        const revenueQuery = `
-            SELECT SUM(sp.price) as total_revenue
-            FROM users u
-            JOIN subscription_plan sp ON u.plan_id = sp.id
-            WHERE u.status = 'ACTIVE'
-        `;
-        const revenueResult = await db.query(revenueQuery);
-        const totalRevenue = parseInt(revenueResult.rows[0]?.total_revenue) || 0;
-
-        const ownersQuery = `
-            SELECT 
-                COUNT(*) as total,
-                COUNT(CASE WHEN status = 'ACTIVE' THEN 1 END) as active
-            FROM users 
-            WHERE role_id = (SELECT id FROM role WHERE role_name = 'OWNER')
-        `;
-        const ownersResult = await db.query(ownersQuery);
-        
-        const plansResult = await db.query('SELECT COUNT(*) FROM subscription_plan');
-
-        res.status(200).json({
-            totalRevenue: totalRevenue,
-            totalOwners: parseInt(ownersResult.rows[0]?.total) || 0,
-            activeOwners: parseInt(ownersResult.rows[0]?.active) || 0,
-            totalPlans: parseInt(plansResult.rows[0]?.count) || 0
-        });
-
+        const query = `
+            SELECT f.*, u.full_name, u.shop_name 
+            FROM feedbacks f 
+            JOIN users u ON f.user_id = u.id 
+            ORDER BY f.created_at DESC`;
+        const result = await db.query(query);
+        res.status(200).json(result.rows);
     } catch (error) {
-        console.error("Dashboard Stats Error:", error);
-        res.status(500).json({ message: "Lỗi lấy thống kê dashboard" });
+        res.status(500).json({ message: "Lỗi lấy danh sách phản hồi" });
     }
 };
 
-export const getRevenueStats = async (req, res) => {
-    // Dữ liệu giả lập
-    const mockData = [
-        { date: '2024-01-01', value: 1500000 },
-        { date: '2024-01-02', value: 2300000 },
-        { date: '2024-01-03', value: 1800000 },
-        { date: '2024-01-04', value: 3200000 },
-        { date: '2024-01-05', value: 2100000 },
-        { date: '2024-01-06', value: 4500000 },
-        { date: '2024-01-07', value: 3800000 },
-    ];
-    res.status(200).json(mockData);
+// Lấy số lượng phản hồi đang chờ xử lý
+export const getPendingFeedbackCount = async (req, res) => {
+    try {
+        const query = `SELECT COUNT(*) FROM feedbacks WHERE status = 'PENDING'`;
+        const result = await db.query(query);
+        res.status(200).json({ count: parseInt(result.rows[0].count) || 0 });
+    } catch (error) {
+        console.error("Get Feedback Count Error:", error);
+        res.status(500).json({ message: "Lỗi lấy số lượng phản hồi" });
+    }
 };
 
-export const getGrowthStats = async (req, res) => {
-    // Dữ liệu giả lập
-    const mockData = [
-        { date: '2024-01-01', value: 5 },
-        { date: '2024-01-02', value: 12 },
-        { date: '2024-01-03', value: 18 },
-        { date: '2024-01-04', value: 25 },
-        { date: '2024-01-05', value: 30 },
-        { date: '2024-01-06', value: 45 },
-        { date: '2024-01-07', value: 50 },
-    ];
-    res.status(200).json(mockData);
+// Cập nhật trạng thái phản hồi (Đã xử lý / Chưa xử lý)
+export const updateFeedbackStatus = async (req, res) => {
+    const { id } = req.params;
+    const { status, admin_note } = req.body;
+    try {
+        await db.query(
+            'UPDATE feedbacks SET status = $1, admin_note = $2, updated_at = NOW() WHERE id = $3',
+            [status, admin_note, id]
+        );
+        res.status(200).json({ message: "Cập nhật thành công" });
+    } catch (error) {
+        res.status(500).json({ message: "Lỗi cập nhật phản hồi" });
+    }
+};
+
+// Xóa phản hồi
+export const deleteFeedback = async (req, res) => {
+    const { id } = req.params;
+    try {
+        const query = 'DELETE FROM feedbacks WHERE id = $1 RETURNING id';
+        const result = await db.query(query, [id]);
+
+        if (result.rowCount === 0) {
+            return res.status(404).json({ message: "Không tìm thấy phản hồi để xóa" });
+        }
+
+        res.status(200).json({ message: "Đã xóa phản hồi thành công" });
+    } catch (error) {
+        console.error("Delete Feedback Error:", error);
+        res.status(500).json({ message: "Lỗi server khi xóa phản hồi" });
+    }
 };

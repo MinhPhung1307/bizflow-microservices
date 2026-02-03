@@ -32,8 +32,4 @@ router.get('/owner/inventory/low-stock', isOwner, ReportController.getLowStock);
 router.get('/owner/stats/revenue', isOwner, ReportController.getRevenueCostStats); 
 // Hoạt động gần đây
 router.get('/owner/recent-orders', isOwner, ReportController.getRecentActivities);
-// Sản phẩm bán chạy
-router.get('/owner/best-sellers', isOwner, ReportController.getBestSellers); 
-// Sổ cái kế toán
-router.get('/owner/compliance/ledger', isOwner, ReportController.getAccountingLedger); 
 export default router;

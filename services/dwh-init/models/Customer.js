@@ -13,6 +13,7 @@ export const createCustomerTable = async () => {
                 address VARCHAR(255),
                 total_outstanding_debt DECIMAL(19, 2) NOT NULL DEFAULT 0.00,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 
                 FOREIGN KEY (owner_id) REFERENCES users(id) ON DELETE CASCADE
             );

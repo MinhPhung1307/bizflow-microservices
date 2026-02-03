@@ -315,3 +315,19 @@ export const deleteAuditLog = async (req, res) => {
         res.status(500).json({ message: 'Lỗi hệ thống khi xóa nhật ký' });
     }
 };
+
+// CONTROLLER phản hồi từ Owner
+// Gửi phản hồi từ Owner
+export const sendFeedback = async (req, res) => {
+    const { title, content } = req.body;
+    const userId = req.user.id; // Lấy từ token 
+    try {
+        await db.query(
+            'INSERT INTO feedbacks (user_id, title, content) VALUES ($1, $2, $3)',
+            [userId, title, content]
+        );
+        res.status(201).json({ message: "Gửi phản hồi thành công" });
+    } catch (error) {
+        res.status(500).json({ message: "Lỗi gửi phản hồi" });
+    }
+};

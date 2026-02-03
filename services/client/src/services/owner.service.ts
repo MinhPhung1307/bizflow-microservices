@@ -35,10 +35,12 @@ export const ownerService = {
         return response.data;
     },
 
+    // Xóa nhật ký hoạt động
     deleteAuditLog: async (id: string) => {
         return api.delete(`/owner/audit-logs/${id}`);
     },
 
+    // Xóa toàn bộ nhật ký hoạt động
     clearAuditLogs: async () => {
         return api.delete('/owner/audit-logs/clear');
     },
@@ -55,13 +57,20 @@ export const ownerService = {
         return response.data;
     },
 
+    // Lấy đơn vị tính trong kho của chủ shop
     getStoreUoms: async () => {
         const response = await api.get('products/uoms/store');
         return response.data;
     },
 
-
+    // Nhập kho sản phẩm
     importStock: async (data: Object) => {
         return api.post('products/import', data);
+    },
+
+    // Gửi phản hồi đến Admin
+    sendFeedback: async (data: { title: string; content: string }) => {
+        const response = await api.post('/owner/feedbacks', data);
+        return response.data;
     },
 };
