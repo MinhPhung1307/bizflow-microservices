@@ -140,7 +140,12 @@ export default function DashboardPage() {
                   <YAxis 
                     axisLine={false} 
                     tickLine={false} 
-                    tickFormatter={(val) => `${(val/1000000).toFixed(0)}Tr`}
+                    tickFormatter={(val) => {
+                      if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)}Tỷ`;
+                      if (val >= 1000000) return `${(val / 1000000).toFixed(0)}Tr`;
+                      if (val >= 1000) return `${(val / 1000).toFixed(0)}K`;
+                      return val;
+                    }}
                     style={{ fontSize: '11px', fill: '#64748b' }}
                   />
                   <Tooltip 
@@ -230,15 +235,7 @@ export default function DashboardPage() {
                        ))
                    )}
                </div>
-               <button className="w-full mt-4 py-2 text-sm text-blue-600 bg-blue-50 rounded-lg hover:bg-blue-100 font-medium transition-colors">
-                   Xem tất cả
-               </button>
           </div>
-      </div>
-      
-      {/* AI Assistant */}
-      <div className="min-h-screen py-10">
-        <AIOrderCreator />
       </div>
     </div>
   );

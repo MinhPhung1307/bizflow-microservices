@@ -22,7 +22,6 @@ const sidebarItems = [
   { href: "/dashboard/customers", label: "Khách hàng", icon: Users },
   { href: "/dashboard/staff", label: "Nhân viên", icon: UserCog },
   { href: "/dashboard/audit-logs", label: "Nhật ký", icon: History },
-  { href: "/dashboard/reports", label: "Báo cáo", icon: FileBarChart },
 ];
 
 export default function Sidebar() {
