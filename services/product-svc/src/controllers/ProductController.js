@@ -264,7 +264,7 @@ export const importStock = async (req, res) => {
         // BƯỚC 1: Xử lý thông tin Sản phẩm
         if (isNewProduct || !productId) {
             const insertProductSql = `
-                INSERT INTO product (owner_id, code, name, category, price, stock, unit, created_at)
+                INSERT INTO product (owner_id, code, name, category, price, stock, unit, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, 0, $6, NOW(), NOW())
                 RETURNING id;
             `;
