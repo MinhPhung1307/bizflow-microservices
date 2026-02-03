@@ -1,5 +1,5 @@
 export const MasterTemplateModel = `
-    CREATE TABLE master_templates (
+    CREATE TABLE IF NOT EXISTS master_templates (
         id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
         template_name VARCHAR(255) NOT NULL, -- Ví dụ: Sổ chi tiết doanh thu
         template_code VARCHAR(50) UNIQUE NOT NULL, -- Ví dụ: S01-HKD
