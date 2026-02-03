@@ -51,8 +51,8 @@ services:
     ports:
       - "4002:4002"
     environment:
-      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_product?sslmode=require&channel_binding=require
       - PORT=4002
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_product?sslmode=require&channel_binding=require
       - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
       - JWT_SECRET_KEY=minhphungdevsecretkey
     depends_on:
@@ -68,9 +68,11 @@ services:
     ports:
       - "4003:4003"
     environment:
+      - PORT=4003
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_order?sslmode=require&channel_binding=require
       - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
       - AI_SERVICE_URL=http://ai-svc:5000
+      - JWT_SECRET_KEY=minhphungdevsecretkey
     networks:
       - bizflow-network
 
@@ -82,8 +84,10 @@ services:
     ports:
       - "4005:4005"
     environment:
+      - PORT=4005
       - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_customer?sslmode=require&channel_binding=require
       - RABBITMQ_URL=amqp://admin:123456@bizflow-mq:5672
+      - JWT_SECRET_KEY=minhphungdevsecretkey
     networks:
       - bizflow-network
 
@@ -95,7 +99,8 @@ services:
     ports:
       - "4004:4004"
     environment:
-      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_report?sslmode=require&channel_binding=require
+      - PORT=4004
+      - DATABASE_URL=postgresql://neondb_owner:npg_5nOzRjK7IlJg@ep-empty-glitter-ahhdguzq-pooler.c-3.us-east-1.aws.neon.tech/bizflow_dwh?sslmode=require&channel_binding=require
       - JWT_SECRET_KEY=minhphungdevsecretkey
     networks:
       - bizflow-network
@@ -182,6 +187,13 @@ services:
       - "3000:3000"
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8000/api # Gọi qua Kong Gateway
+      - NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyCSwhJ9_BWhDqnZGTICkzC2qsOgP7Jiswo
+      - NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=bizflow-2c656.firebaseapp.com
+      - NEXT_PUBLIC_FIREBASE_PROJECT_ID=bizflow-2c656
+      - NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=bizflow-2c656.firebasestorage.app
+      - NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=120892330363
+      - NEXT_PUBLIC_FIREBASE_APP_ID=1:120892330363:web:6667fb0d2ca5c4b957edde
+      - NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-K7C4WX0P80
     depends_on:
       - kong
     networks:

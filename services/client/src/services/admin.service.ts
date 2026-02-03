@@ -31,4 +31,22 @@ export const adminService = {
         const response = await api.delete(`/admin/feedbacks/${id}`);
         return response.data;
     },
+
+    // Lấy danh sách mẫu báo cáo (Khớp với backend router.get('/templates'))
+    getReportTemplates: async () => {
+        const response = await api.get('/admin/templates');
+        return response.data;
+    },
+
+    // Cập nhật mẫu báo cáo (Khớp với backend router.put('/templates/:id'))
+    updateReportTemplate: async (id: number, data: any) => {
+        const response = await api.put(`/admin/templates/${id}`, data);
+        return response.data;
+    },
+
+    // Tạo mới mẫu báo cáo (Khớp với backend router.post('/templates'))
+    createReportTemplate: async (data: any) => {
+        const response = await api.post('/admin/templates', data);
+        return response.data;
+    }
 };

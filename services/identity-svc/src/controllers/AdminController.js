@@ -506,3 +506,29 @@ export const deleteFeedback = async (req, res) => {
         res.status(500).json({ message: "Lỗi server khi xóa phản hồi" });
     }
 };
+
+// CONTROLLER Quản lý Mẫu biểu
+// Tạo mẫu biểu mới
+export const createTemplate = async (req, res) => {
+    const { title, description, file_url, category } = req.body;
+    try {
+        const query = `
+            INSERT INTO report_templates (title, description, file_url, category, created_at)
+            VALUES ($1, $2, $3, $4, NOW()) RETURNING *
+        `;
+        const result = await db.query(query, [title, description, file_url, category]);
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        res.status(500).json({ message: "Lỗi khi lưu template" });
+    }
+};
+
+// Lấy danh sách tất cả mẫu biểu
+export const getAllTemplates = async (req, res) => {
+    try {
+        const result = await db.query("SELECT * FROM report_templates ORDER BY created_at DESC");
+        res.status(200).json(result.rows);
+    } catch (error) {
+        res.status(500).json({ message: "Lỗi lấy danh sách template" });
+    }
+};
