@@ -16,7 +16,7 @@ export const ProductUomModel = `
     DO $$
     DECLARE
         v_prod_id UUID;
-        v_uom_id INTEGER;
+        v_uom_id UUID;
     BEGIN
         -- 1. GIẢ SỬ CÓ SẢN PHẨM 'Xi măng' (Đơn vị gốc là Kg)
         SELECT id INTO v_prod_id FROM product WHERE name ILIKE '%Xi măng%' LIMIT 1;
