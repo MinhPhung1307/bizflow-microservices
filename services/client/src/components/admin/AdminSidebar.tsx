@@ -9,7 +9,8 @@ import {
   FileBarChart, 
   CreditCard, 
   LogOut,
-  MessageSquare 
+  MessageSquare,
+  FileSpreadsheet
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
@@ -38,6 +39,7 @@ export const AdminSidebar = () => {
       icon: MessageSquare,
       badge: feedbackData?.count > 0 ? feedbackData.count : null
     },
+    { href: '/admin/reports-config', label: 'Mẫu biểu TT88', icon: FileSpreadsheet },
     { href: '/admin/reports-analytics', label: 'Báo cáo & Phân tích', icon: FileBarChart },
     { href: '/admin/system-config', label: 'Cấu hình hệ thống', icon: Settings },
   ];

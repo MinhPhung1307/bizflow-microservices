@@ -7,6 +7,7 @@ import { SubscriptionPlanModel } from './SubscriptionPlan.js';
 import { AuditLogModel } from './AuditLog.js';
 import { SystemConfigModel } from './SystemConfig.js';
 import { FeedbackModel } from './Feedback.js';
+import { MasterTemplateModel } from './MasterTemplate.js';
 
 const initAdmin = async () => {
 
@@ -58,6 +59,7 @@ export const initTables = async () => {
     await pool.query(UserApprovalModel);
     await pool.query(AuditLogModel);
     await pool.query(FeedbackModel);
+    await pool.query(MasterTemplateModel);
     
     // 4. Khởi tạo tài khoản Admin mặc định
     await initAdmin();

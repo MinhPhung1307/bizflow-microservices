@@ -1,5 +1,6 @@
 import express from 'express';
 import * as AdminController from '../controllers/AdminController.js';
+import * as TemplateController from '../controllers/TemplateController.js';
 import { verifyToken, isAdmin } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
@@ -30,5 +31,10 @@ router.get('/feedbacks', AdminController.getAllFeedbacks);
 router.get('/feedbacks/count', AdminController.getPendingFeedbackCount);
 router.put('/feedbacks/:id', AdminController.updateFeedbackStatus);
 router.delete('/feedbacks/:id', AdminController.deleteFeedback);
+
+// 5. Quản lý Mẫu biểu
+router.get('/templates', AdminController.getAllTemplates);
+router.post('/templates', AdminController.createTemplate);
+// router.delete('/templates/:id', AdminController.deleteTemplate);
 
 export default router;
